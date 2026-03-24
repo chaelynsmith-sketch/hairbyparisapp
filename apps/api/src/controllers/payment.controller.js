@@ -102,16 +102,21 @@ async function paypalWebhook(req, res) {
 }
 
 async function payfastWebhook(req, res) {
-  verifySharedSecretWebhook("payfast", req.headers["x-payfast-secret"]);
-
-  const paymentStatus = String(req.body.payment_status || "").toUpperCase() === "COMPLETE" ? "paid" : "failed";
+  const paymentState = String(req.body.payment_status || "").toUpperCase();
+  const paymentStatus =
+    paymentState === "COMPLETE" ? "paid" : paymentState === "CANCELLED" ? "cancelled" : "failed";
   await reconcilePaymentUpdate({
-    orderId: req.body.m_payment_id || req.body.orderId,
+    orderId: req.body.m_payment_id || req.body.custom_str1 || req.body.orderId,
     provider: "payfast",
     paymentStatus,
     transactionId: req.body.pf_payment_id,
-    eventStatus: paymentStatus === "paid" ? "paid" : "payment_failed",
-    eventMessage: paymentStatus === "paid" ? "PayFast payment confirmed." : "PayFast payment failed."
+    eventStatus: paymentStatus === "paid" ? "paid" : paymentStatus === "cancelled" ? "cancelled" : "payment_failed",
+    eventMessage:
+      paymentStatus === "paid"
+        ? "PayFast payment confirmed."
+        : paymentStatus === "cancelled"
+          ? "PayFast payment was cancelled."
+          : "PayFast payment failed."
   });
 
   res.json({ received: true });

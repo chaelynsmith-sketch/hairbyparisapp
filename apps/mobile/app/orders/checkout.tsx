@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
@@ -163,6 +163,24 @@ export default function CheckoutScreen() {
     onSuccess: (result) => {
       const paymentState = formatPaymentLabel(result.paymentIntent?.status);
       setSavedShippingAddress(shippingAddress);
+      const redirectUrl = result.paymentIntent?.redirectUrl;
+
+      if (paymentProvider === "payfast" && redirectUrl) {
+        setStatusMessage(`Order ${result.order.orderNumber} created. Redirecting to PayFast...`);
+        setErrorMessage("");
+        setDuplicateWarning(null);
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+        queryClient.invalidateQueries({ queryKey: ["checkout-summary"] });
+
+        if (Platform.OS === "web") {
+          window.location.href = redirectUrl;
+          return;
+        }
+
+        Linking.openURL(redirectUrl);
+        return;
+      }
+
       setStatusMessage(
         result.duplicateAttempt
           ? `Duplicate order confirmed. New order ${result.order.orderNumber} placed. Payment status: ${paymentState}.`

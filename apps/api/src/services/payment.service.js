@@ -84,6 +84,21 @@ function getStripeClient() {
   return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+function getClientUrl() {
+  return process.env.CLIENT_URL || "http://localhost:8082";
+}
+
+function buildPayFastSignature(fields, passphrase) {
+  const query = Object.entries(fields)
+    .filter(([, value]) => value !== undefined && value !== null && value !== "")
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, value]) => `${key}=${encodeURIComponent(String(value).trim()).replace(/%20/g, "+")}`)
+    .join("&");
+
+  const payload = passphrase ? `${query}&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, "+")}` : query;
+  return require("crypto").createHash("md5").update(payload).digest("hex");
+}
+
 function verifyStripeWebhookEvent(payload, signature) {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
     throw new ApiError(500, "Stripe webhook secret is not configured");
@@ -279,6 +294,41 @@ async function createPaymentIntent({ amount, currency, provider, metadata }) {
         provider,
         status: "mock_pending",
         redirectUrl: `https://sandbox.${provider}.mock/redirect`
+      };
+    }
+
+    if (provider === "payfast") {
+      const clientUrl = getClientUrl();
+      const notifyUrl = `${process.env.API_BASE_URL || "https://hair-cy-paris-api.onrender.com"}/api/v1/payments/webhooks/payfast`;
+      const paymentFields = {
+        merchant_id: process.env.PAYFAST_MERCHANT_ID,
+        merchant_key: process.env.PAYFAST_MERCHANT_KEY,
+        return_url: clientUrl,
+        cancel_url: clientUrl,
+        notify_url: notifyUrl,
+        name_first: sanitizedMetadata.customerFirstName || "Hair",
+        name_last: sanitizedMetadata.customerLastName || "By Paris",
+        email_address: sanitizedMetadata.customerEmail || process.env.SMTP_USER || "support@hairbyparis.com",
+        m_payment_id: sanitizedMetadata.orderId,
+        amount: Number(amount).toFixed(2),
+        item_name: `Hair By Paris Order ${sanitizedMetadata.orderId || ""}`.trim(),
+        item_description: `Payment for order ${sanitizedMetadata.orderId || ""}`.trim(),
+        custom_str1: sanitizedMetadata.orderId || "",
+        custom_str2: sanitizedMetadata.userId || ""
+      };
+
+      const signature = buildPayFastSignature(paymentFields, process.env.PAYFAST_PASSPHRASE || "");
+      const query = new URLSearchParams({
+        ...Object.fromEntries(
+          Object.entries(paymentFields).map(([key, value]) => [key, String(value)])
+        ),
+        signature
+      });
+
+      return {
+        provider,
+        status: "pending",
+        redirectUrl: `https://www.payfast.co.za/eng/process?${query.toString()}`
       };
     }
 
