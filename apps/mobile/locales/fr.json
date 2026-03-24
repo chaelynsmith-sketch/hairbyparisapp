@@ -1,0 +1,19 @@
+{
+  "common": {
+    "welcome": "Cheveux de luxe, livrés partout",
+    "search": "Rechercher perruques, outils et soins",
+    "addToCart": "Ajouter au panier",
+    "wishlist": "Liste de souhaits",
+    "checkout": "Paiement",
+    "chatTitle": "Assistant beauté IA"
+  },
+  "tabs": {
+    "home": "Accueil",
+    "shop": "Boutique",
+    "chat": "IA",
+    "wishlist": "Souhaits",
+    "cart": "Panier",
+    "orders": "Commandes",
+    "profile": "Profil"
+  }
+}

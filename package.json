@@ -1,0 +1,23 @@
+{
+  "name": "hair-by-paris-commerce-platform",
+  "private": true,
+  "version": "1.0.0",
+  "workspaces": [
+    "apps/mobile",
+    "apps/api"
+  ],
+  "overrides": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-reanimated": "4.1.7",
+    "react-native-worklets": "0.5.1",
+    "expo-constants": "18.0.13"
+  },
+  "scripts": {
+    "dev:api": "npm --workspace apps/api run dev",
+    "dev:mobile": "npm --workspace apps/mobile run start",
+    "lint": "npm run lint --workspaces",
+    "test": "npm run test --workspaces"
+  }
+}

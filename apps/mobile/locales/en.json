@@ -1,0 +1,19 @@
+{
+  "common": {
+    "welcome": "Luxury hair, globally delivered",
+    "search": "Search for wigs, tools, and care",
+    "addToCart": "Add to cart",
+    "wishlist": "Wishlist",
+    "checkout": "Checkout",
+    "chatTitle": "Beauty AI Assistant"
+  },
+  "tabs": {
+    "home": "Home",
+    "shop": "Shop",
+    "chat": "AI",
+    "wishlist": "Wishlist",
+    "cart": "Cart",
+    "orders": "Orders",
+    "profile": "Profile"
+  }
+}
