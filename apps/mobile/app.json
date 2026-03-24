@@ -20,7 +20,8 @@
       "package": "com.hairbyparis.app"
     },
     "web": {
-      "bundler": "metro"
+      "bundler": "metro",
+      "output": "static"
     },
     "plugins": [
       "expo-router",
