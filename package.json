@@ -14,6 +14,9 @@
     "react-native-worklets": "0.5.1",
     "expo-constants": "18.0.13"
   },
+  "dependencies": {
+    "expo-router": "~6.0.23"
+  },
   "scripts": {
     "dev:api": "npm --workspace apps/api run dev",
     "dev:mobile": "npm --workspace apps/mobile run start",
