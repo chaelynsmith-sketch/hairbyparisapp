@@ -3,7 +3,7 @@ const { ApiError } = require("../utils/api-error");
 const { Order } = require("../models/order.model");
 const { syncPayoutsForPaymentStatus } = require("./payout.service");
 
-const SUPPORTED_PAYMENT_PROVIDERS = ["stripe", "paypal", "payfast", "ozow"];
+const SUPPORTED_PAYMENT_PROVIDERS = ["paypal", "payfast", "ozow"];
 
 function getEnabledPaymentMethods(store) {
   return Object.entries(store.paymentMethods || {})
@@ -32,18 +32,6 @@ function assertPaymentProviderAllowed(store, provider) {
 }
 
 function assertPaymentProviderConfigured(provider) {
-  if (provider === "stripe") {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      if (process.env.NODE_ENV !== "production") {
-        return;
-      }
-
-      throw new ApiError(500, "Stripe is not configured");
-    }
-
-    return;
-  }
-
   if (provider === "paypal") {
     if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
       if (process.env.NODE_ENV !== "production") {
@@ -85,7 +73,22 @@ function getStripeClient() {
 }
 
 function getClientUrl() {
-  return process.env.CLIENT_URL || "http://localhost:8082";
+  const frontendUrl =
+    process.env.FRONTEND_URL ||
+    process.env.CLIENT_URL
+      ?.split(",")
+      .map((value) => value.trim())
+      .find(Boolean);
+
+  if (!frontendUrl) {
+    return "http://localhost:8082";
+  }
+
+  if (/^https?:\/\//i.test(frontendUrl)) {
+    return frontendUrl;
+  }
+
+  return `https://${frontendUrl}`;
 }
 
 function buildPayFastSignature(fields, passphrase) {
@@ -246,26 +249,6 @@ async function reconcilePaymentUpdate({
 async function createPaymentIntent({ amount, currency, provider, metadata }) {
   assertPaymentProviderConfigured(provider);
   const sanitizedMetadata = sanitizePaymentMetadata(metadata);
-
-  if (provider === "stripe") {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      return {
-        provider,
-        status: "mock_pending",
-        clientSecret: "mock_stripe_client_secret",
-        amount,
-        currency,
-        metadata: sanitizedMetadata
-      };
-    }
-
-    const stripe = getStripeClient();
-    return stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: currency.toLowerCase(),
-      metadata: sanitizedMetadata
-    });
-  }
 
   if (provider === "paypal") {
     if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {

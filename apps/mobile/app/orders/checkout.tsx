@@ -9,6 +9,8 @@ import { useTheme } from "@/hooks/use-theme";
 import { fetchCheckoutSummary, fetchPaymentMethods, placeOrder } from "@/services/order-service";
 import { useSessionStore } from "@/store/session-store";
 
+const SUPPORTED_CHECKOUT_PROVIDERS = ["payfast"];
+
 function formatPaymentLabel(value?: string) {
   if (!value) {
     return "Pending";
@@ -27,9 +29,8 @@ export default function CheckoutScreen() {
   const setCartCount = useSessionStore((state) => state.setCartCount);
   const savedShippingAddress = useSessionStore((state) => state.savedShippingAddress);
   const setSavedShippingAddress = useSessionStore((state) => state.setSavedShippingAddress);
-  const stripeReady = Boolean(process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY);
-  const [paymentProvider, setPaymentProvider] = useState("stripe");
-  const [paymentMethodType, setPaymentMethodType] = useState("card");
+  const [paymentProvider, setPaymentProvider] = useState("payfast");
+  const [paymentMethodType, setPaymentMethodType] = useState("payfast");
   const [voucherCode, setVoucherCode] = useState("");
   const [appliedVoucherCode, setAppliedVoucherCode] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
@@ -56,60 +57,24 @@ export default function CheckoutScreen() {
   const methodCatalog = useMemo(
     () =>
       ({
-        stripe: {
-          label: "Stripe",
-          description: "Card checkout with the fastest migration path to live payments."
-        },
-        paypal: {
-          label: "PayPal",
-          description: "Best for shoppers who prefer wallet-based payment approval."
-        },
         payfast: {
           label: "PayFast",
           description: "Local South African payment flow for launch readiness."
-        },
-        ozow: {
-          label: "Ozow",
-          description: "Instant EFT option for South African bank payments."
         }
       }) as Record<string, { label: string; description: string }>,
     []
   );
   const methods = enabledPaymentMethods
+    .filter((value) => SUPPORTED_CHECKOUT_PROVIDERS.includes(value))
     .map((value) => ({ value, ...(methodCatalog[value] || { label: formatPaymentLabel(value), description: "Payment method available for this store." }) }))
     .filter((item) => Boolean(item.value));
-  const checkoutOptions = methods.flatMap(({ value, label, description }) => {
-    if (value === "stripe") {
-      const stripeOptions = [
-        {
-          key: "stripe-card",
-          provider: "stripe",
-          methodType: "card",
-          label: "Card",
-          description
-        },
-        {
-          key: "stripe-google-pay",
-          provider: "stripe",
-          methodType: "google_pay",
-          label: "Google Pay",
-          description: "Wallet checkout through Stripe for compatible Android and web browsers."
-        }
-      ];
-
-      return stripeReady ? stripeOptions : stripeOptions.filter((option) => option.methodType === "card");
-    }
-
-    return [
-      {
-        key: value,
-        provider: value,
-        methodType: value,
-        label,
-        description
-      }
-    ];
-  });
+  const checkoutOptions = methods.map(({ value, label, description }) => ({
+    key: value,
+    provider: value,
+    methodType: value,
+    label,
+    description
+  }));
 
   useEffect(() => {
     if (!checkoutOptions.length) {
@@ -392,17 +357,8 @@ export default function CheckoutScreen() {
       <View style={[styles.noteCard, { backgroundColor: theme.spotlight, borderColor: theme.border }]}>
         <Text style={[styles.noteTitle, { color: theme.text }]}>Payment setup</Text>
         <Text style={{ color: theme.muted }}>
-          Development checkout is active right now. Orders place successfully even if a live payment gateway is not configured yet.
+          Checkout is configured for PayFast. When you place the order, you will be redirected to PayFast to complete payment.
         </Text>
-        {stripeReady ? (
-          <Text style={{ color: theme.muted }}>
-            Card and Google Pay selections are routed through Stripe. Live wallet confirmation requires a development build and real Stripe credentials.
-          </Text>
-        ) : (
-          <Text style={{ color: theme.muted }}>
-            Add a Stripe publishable key to enable wallet-ready Stripe configuration for card and Google Pay.
-          </Text>
-        )}
       </View>
       {checkoutOptions.length ? (
         <View style={styles.methods}>
@@ -425,9 +381,7 @@ export default function CheckoutScreen() {
             >
               <Text style={[styles.methodTitle, { color: theme.text }]}>{label}</Text>
               <Text style={{ color: theme.muted }}>{description}</Text>
-              <Text style={{ color: theme.muted }}>
-                Processed by {provider === "stripe" ? "Stripe" : formatPaymentLabel(provider)}
-              </Text>
+              <Text style={{ color: theme.muted }}>Processed by {formatPaymentLabel(provider)}</Text>
               <Text
                 style={{
                   color:
