@@ -17,6 +17,7 @@ type SessionState = {
   accessToken: string | null;
   refreshToken: string | null;
   user: AppUser | null;
+  rememberedIdentifier: string;
   storeKey: string;
   country: string;
   currency: string;
@@ -39,6 +40,7 @@ type SessionState = {
   hasHydrated: boolean;
   setSession: (payload: { accessToken: string; refreshToken: string; user: AppUser }) => void;
   clearSession: () => void;
+  setRememberedIdentifier: (identifier: string) => void;
   setRegion: (payload: { storeKey: string; country: string; currency: string; locale: string }) => void;
   setThemePreference: (themePreference: ThemeOption) => void;
   setWishlist: (wishlist: string[]) => void;
@@ -59,6 +61,7 @@ export const useSessionStore = create<SessionState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
+      rememberedIdentifier: "",
       storeKey: "hair-by-paris-global",
       country: defaultCountry,
       currency: "ZAR",
@@ -92,6 +95,7 @@ export const useSessionStore = create<SessionState>()(
           themePreference: "black_white",
           savedShippingAddress: null
         }),
+      setRememberedIdentifier: (rememberedIdentifier) => set({ rememberedIdentifier }),
       setRegion: ({ storeKey, country, currency, locale }) =>
         set({
           storeKey,
@@ -168,6 +172,7 @@ export const useSessionStore = create<SessionState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
+        rememberedIdentifier: state.rememberedIdentifier,
         storeKey: state.storeKey,
         country: state.country,
         currency: state.currency,

@@ -18,6 +18,7 @@ function createApp() {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
+  const allowedVercelProjectPattern = /^https:\/\/hairbyparisapp-api(?:-[a-z0-9-]+)?\.vercel\.app$/i;
 
   const allowOrigin = (origin, callback) => {
     if (!origin) {
@@ -26,8 +27,9 @@ function createApp() {
 
     const isConfigured = configuredOrigins.includes(origin);
     const isExpoLocalhost = /^http:\/\/(localhost|127\.0\.0\.1):\d+$/.test(origin);
+    const isApprovedVercelPreview = allowedVercelProjectPattern.test(origin);
 
-    if (isConfigured || (process.env.NODE_ENV !== "production" && isExpoLocalhost)) {
+    if (isConfigured || isApprovedVercelPreview || (process.env.NODE_ENV !== "production" && isExpoLocalhost)) {
       return callback(null, true);
     }
 
