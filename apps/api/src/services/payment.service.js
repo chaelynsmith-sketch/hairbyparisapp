@@ -91,6 +91,28 @@ function getClientUrl() {
   return `https://${frontendUrl}`;
 }
 
+function isPlaceholderEmail(value) {
+  if (!value) {
+    return true;
+  }
+
+  return /your-gmail-address@gmail\.com/i.test(value) || /example\.com$/i.test(value);
+}
+
+function getPayFastCustomerEmail(metadata) {
+  const customerEmail = metadata.customerEmail?.trim();
+  if (customerEmail && !isPlaceholderEmail(customerEmail)) {
+    return customerEmail;
+  }
+
+  const smtpEmail = process.env.SMTP_USER?.trim();
+  if (smtpEmail && !isPlaceholderEmail(smtpEmail)) {
+    return smtpEmail;
+  }
+
+  throw new ApiError(500, "PayFast requires a real customer email before checkout can continue");
+}
+
 function buildPayFastSignature(fields, passphrase) {
   const query = Object.entries(fields)
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
@@ -291,7 +313,7 @@ async function createPaymentIntent({ amount, currency, provider, metadata }) {
         notify_url: notifyUrl,
         name_first: sanitizedMetadata.customerFirstName || "Hair",
         name_last: sanitizedMetadata.customerLastName || "By Paris",
-        email_address: sanitizedMetadata.customerEmail || process.env.SMTP_USER || "support@hairbyparis.com",
+        email_address: getPayFastCustomerEmail(sanitizedMetadata),
         m_payment_id: sanitizedMetadata.orderId,
         amount: Number(amount).toFixed(2),
         item_name: `Hair By Paris Order ${sanitizedMetadata.orderId || ""}`.trim(),
