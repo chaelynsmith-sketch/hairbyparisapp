@@ -34,4 +34,9 @@ async function dashboardSummary(req, res) {
   });
 }
 
-module.exports = { dashboardSummary };
+async function listAdminProducts(req, res) {
+  const products = await Product.find({ storeId: req.storeId }).sort({ createdAt: -1 }).limit(100);
+  res.json({ products });
+}
+
+module.exports = { dashboardSummary, listAdminProducts };

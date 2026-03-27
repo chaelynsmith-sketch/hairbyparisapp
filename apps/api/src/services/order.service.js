@@ -134,6 +134,9 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
       supplierId: item.productId.supplierId,
       name: item.productId.name,
       sku: item.productId.inventory.sku,
+      supplierPlatform: item.productId.sourcing?.platform,
+      supplierSourceUrl: item.productId.sourcing?.sourceUrl,
+      supplierReference: item.productId.sourcing?.supplierReference,
       quantity: item.quantity,
       unitPrice: convertCurrency(item.unitPrice, item.currency, store.defaultCurrency),
       currency: store.defaultCurrency

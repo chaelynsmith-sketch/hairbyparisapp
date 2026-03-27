@@ -6,6 +6,9 @@ const orderItemSchema = new mongoose.Schema(
     supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     name: String,
     sku: String,
+    supplierPlatform: String,
+    supplierSourceUrl: String,
+    supplierReference: String,
     quantity: Number,
     unitPrice: Number,
     currency: String
@@ -57,6 +60,9 @@ const orderSchema = new mongoose.Schema(
     fulfillment: {
       type: { type: String, enum: ["dropship", "manual"], default: "dropship" },
       supplierDispatchStatus: { type: String, default: "queued" },
+      supplierOrderPlacedAt: Date,
+      supplierOrderReference: String,
+      supplierNotes: String,
       estimatedDeliveryStart: Date,
       estimatedDeliveryEnd: Date,
       trackingNumber: String,

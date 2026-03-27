@@ -54,6 +54,12 @@ const productSchema = new mongoose.Schema(
       hairTypes: [String],
       useCases: [String]
     },
+    sourcing: {
+      platform: String,
+      sourceUrl: String,
+      supplierReference: String,
+      notes: String
+    },
     featured: { type: Boolean, default: false },
     status: { type: String, enum: ["draft", "active", "archived"], default: "active" }
   },

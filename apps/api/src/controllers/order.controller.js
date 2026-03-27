@@ -7,6 +7,25 @@ const {
   assertPaymentProviderConfigured
 } = require("../services/payment.service");
 
+function sanitizeCustomerOrder(order) {
+  const value = order.toObject ? order.toObject() : { ...order };
+  value.items = (value.items || []).map((item) => {
+    const nextItem = { ...item };
+    delete nextItem.supplierPlatform;
+    delete nextItem.supplierSourceUrl;
+    delete nextItem.supplierReference;
+    return nextItem;
+  });
+
+  if (value.fulfillment) {
+    delete value.fulfillment.supplierOrderPlacedAt;
+    delete value.fulfillment.supplierOrderReference;
+    delete value.fulfillment.supplierNotes;
+  }
+
+  return value;
+}
+
 async function getCheckoutSummary(req, res) {
   const summary = await buildCheckoutSummary({
     user: req.user,
@@ -48,7 +67,9 @@ async function createOrder(req, res) {
 async function listOrders(req, res) {
   const filters = req.user.role === "customer" ? { userId: req.user.id } : { storeId: req.storeId };
   const orders = await Order.find(filters).sort({ createdAt: -1 }).limit(100);
-  res.json({ orders });
+  res.json({
+    orders: req.user.role === "customer" ? orders.map((order) => sanitizeCustomerOrder(order)) : orders
+  });
 }
 
 async function trackOrder(req, res) {
@@ -73,7 +94,7 @@ async function trackOrder(req, res) {
     await order.save();
   }
 
-  res.json({ order });
+  res.json({ order: req.user.role === "customer" ? sanitizeCustomerOrder(order) : order });
 }
 
 async function adminUpdateOrder(req, res) {
@@ -85,6 +106,18 @@ async function adminUpdateOrder(req, res) {
 
   if (req.body.supplierDispatchStatus) {
     order.fulfillment.supplierDispatchStatus = req.body.supplierDispatchStatus;
+  }
+
+  if (typeof req.body.supplierOrderReference === "string") {
+    order.fulfillment.supplierOrderReference = req.body.supplierOrderReference;
+  }
+
+  if (typeof req.body.supplierNotes === "string") {
+    order.fulfillment.supplierNotes = req.body.supplierNotes;
+  }
+
+  if (req.body.supplierDispatchStatus === "supplier_order_placed") {
+    order.fulfillment.supplierOrderPlacedAt = new Date();
   }
 
   if (typeof req.body.trackingNumber === "string") {

@@ -3,6 +3,12 @@ const { Product } = require("../models/product.model");
 const { Review } = require("../models/review.model");
 const { convertCurrency } = require("../services/currency.service");
 
+function sanitizePublicProduct(product) {
+  const value = product.toObject ? product.toObject() : { ...product };
+  delete value.sourcing;
+  return value;
+}
+
 async function listProducts(req, res) {
   const filters = {
     storeId: req.storeId,
@@ -26,7 +32,7 @@ async function listProducts(req, res) {
 
   res.json({
     products: products.map((product) => ({
-      ...product.toObject(),
+      ...sanitizePublicProduct(product),
       displayPrice: convertCurrency(
         product.pricing.saleAmount || product.pricing.amount,
         product.pricing.baseCurrency,
@@ -51,7 +57,7 @@ async function getProduct(req, res) {
   ]);
 
   res.json({
-    product,
+    product: product ? sanitizePublicProduct(product) : null,
     reviewSummary: reviews[0] || { averageRating: 0, totalReviews: 0 }
   });
 }

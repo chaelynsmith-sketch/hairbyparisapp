@@ -24,7 +24,11 @@ const emptyForm = {
   sku: "",
   quantity: "",
   imageUrl: "",
-  supplierId: ""
+  supplierId: "",
+  supplierPlatform: "",
+  supplierSourceUrl: "",
+  supplierReference: "",
+  supplierNotes: ""
 };
 
 function slugify(value: string) {
@@ -105,6 +109,12 @@ export default function AdminProductsScreen() {
           saleAmount: form.saleAmount ? Number(form.saleAmount) : undefined
         },
         supplierId: form.supplierId || undefined,
+        sourcing: {
+          platform: form.supplierPlatform.trim() || undefined,
+          sourceUrl: form.supplierSourceUrl.trim() || undefined,
+          supplierReference: form.supplierReference.trim() || undefined,
+          notes: form.supplierNotes.trim() || undefined
+        },
         inventory: {
           sku: form.sku,
           quantity: Number(form.quantity || 0),
@@ -193,7 +203,11 @@ export default function AdminProductsScreen() {
       sku: product.inventory?.sku || "",
       quantity: String(product.inventory?.quantity || ""),
       imageUrl: product.media?.[0]?.url || "",
-      supplierId: product.supplierId || ""
+      supplierId: product.supplierId || "",
+      supplierPlatform: product.sourcing?.platform || "",
+      supplierSourceUrl: product.sourcing?.sourceUrl || "",
+      supplierReference: product.sourcing?.supplierReference || "",
+      supplierNotes: product.sourcing?.notes || ""
     });
     setPreviewImageUrl(product.media?.[0]?.url || "");
   }
@@ -235,7 +249,11 @@ export default function AdminProductsScreen() {
           ["amount", "Price"],
           ["saleAmount", "Sale price"],
           ["sku", "SKU"],
-          ["quantity", "Stock quantity"]
+          ["quantity", "Stock quantity"],
+          ["supplierPlatform", "Supplier platform"],
+          ["supplierSourceUrl", "Supplier product link"],
+          ["supplierReference", "Supplier reference / SKU"],
+          ["supplierNotes", "Supplier notes"]
         ].map(([key, label]) => (
           <TextInput
             key={key}
@@ -348,6 +366,9 @@ export default function AdminProductsScreen() {
               <Text style={{ color: theme.muted }}>{product.category}</Text>
               <Text style={{ color: theme.muted }}>
                 Supplier: {suppliers.find((supplier: any) => supplier._id === product.supplierId)?.name || "Manual fallback"}
+              </Text>
+              <Text style={{ color: theme.muted }}>
+                Source: {product.sourcing?.platform || "Not linked"}
               </Text>
               <Text style={{ color: theme.primary }}>{product.pricing?.baseCurrency} {product.pricing?.saleAmount || product.pricing?.amount}</Text>
             </Pressable>

@@ -17,7 +17,9 @@ const adminUpdateOrderValidator = [
   body("supplierDispatchStatus")
     .optional()
     .trim()
-    .isIn(["queued", "manual_review", "dispatched", "manual_action_required"]),
+    .isIn(["queued", "manual_review", "supplier_order_placed", "dispatched", "manual_action_required"]),
+  body("supplierOrderReference").optional().trim().isString(),
+  body("supplierNotes").optional().trim().isString(),
   body("trackingNumber").optional().trim().isString(),
   body("trackingUrl").optional({ values: "falsy" }).trim().isURL(),
   body("status").optional().trim().isIn(["pending", "paid", "processing", "shipped", "delivered", "cancelled"])
