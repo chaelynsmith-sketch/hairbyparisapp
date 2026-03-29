@@ -18,6 +18,7 @@ const emptyForm = {
   name: "",
   slug: "",
   category: "Hair Products",
+  tags: "",
   description: "",
   amount: "",
   saleAmount: "",
@@ -93,6 +94,10 @@ export default function AdminProductsScreen() {
         name: form.name,
         slug: normalizedSlug,
         category: form.category,
+        tags: form.tags
+          .split(",")
+          .map((tag) => tag.trim())
+          .filter(Boolean),
         description: form.description,
         media: form.imageUrl
           ? [
@@ -222,6 +227,7 @@ export default function AdminProductsScreen() {
       name: product.name,
       slug: product.slug,
       category: product.category,
+      tags: Array.isArray(product.tags) ? product.tags.join(", ") : "",
       description: product.description,
       amount: String(product.pricing?.amount || ""),
       saleAmount: product.pricing?.saleAmount ? String(product.pricing.saleAmount) : "",
@@ -270,6 +276,7 @@ export default function AdminProductsScreen() {
           ["name", "Product name"],
           ["slug", "Slug"],
           ["category", "Category"],
+          ["tags", "Tags (comma separated)"],
           ["description", "Description"],
           ["amount", "Price"],
           ["saleAmount", "Sale price"],
@@ -315,6 +322,9 @@ export default function AdminProductsScreen() {
         </View>
         <Text style={{ color: theme.muted }}>
           Choose an existing category above or type a new one directly into the category field.
+        </Text>
+        <Text style={{ color: theme.muted }}>
+          Use tags for extra grouping like Best Seller, New In, Bundles, Sale, or Human Hair.
         </Text>
 
         <View style={styles.categories}>
@@ -394,6 +404,9 @@ export default function AdminProductsScreen() {
               </Text>
               <Text style={{ color: theme.muted }}>
                 Source: {product.sourcing?.platform || "Not linked"}
+              </Text>
+              <Text style={{ color: theme.muted }}>
+                Tags: {product.tags?.length ? product.tags.join(", ") : "No tags"}
               </Text>
               <Text style={{ color: theme.muted }}>
                 Status: {product.status || "active"}
