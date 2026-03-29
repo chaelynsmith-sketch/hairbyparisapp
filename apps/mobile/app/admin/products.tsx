@@ -130,10 +130,35 @@ export default function AdminProductsScreen() {
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       setForm(emptyForm);
       setPreviewImageUrl("");
-      setStatusMessage(`${product.name} ${product._id ? "saved" : "created"} successfully.`);
+      setStatusMessage(`${product.name} saved successfully.`);
     },
     onError: (error: any) => {
       setErrorMessage(error?.response?.data?.message || error?.message || "Unable to save product.");
+    }
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: async () => {
+      setErrorMessage("");
+      setStatusMessage("");
+
+      if (!form._id) {
+        throw new Error("Select a product before removing it.");
+      }
+
+      return updateProduct(form._id, { status: "archived" });
+    },
+    onSuccess: (product) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      setForm(emptyForm);
+      setPreviewImageUrl("");
+      setErrorMessage("");
+      setStatusMessage(`${product.name} removed from the storefront.`);
+    },
+    onError: (error: any) => {
+      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to remove product.");
     }
   });
 
@@ -370,11 +395,31 @@ export default function AdminProductsScreen() {
               <Text style={{ color: theme.muted }}>
                 Source: {product.sourcing?.platform || "Not linked"}
               </Text>
+              <Text style={{ color: theme.muted }}>
+                Status: {product.status || "active"}
+              </Text>
               <Text style={{ color: theme.primary }}>{product.pricing?.baseCurrency} {product.pricing?.saleAmount || product.pricing?.amount}</Text>
             </Pressable>
           ))}
         </View>
       </ScrollView>
+      {isEditing ? (
+        <Pressable
+          onPress={() => archiveMutation.mutate()}
+          style={[
+            styles.removeButton,
+            {
+              borderColor: "#B3261E",
+              backgroundColor: theme.card,
+              opacity: archiveMutation.isPending ? 0.7 : 1
+            }
+          ]}
+        >
+          <Text style={styles.removeButtonText}>
+            {archiveMutation.isPending ? "Removing..." : "Remove from storefront"}
+          </Text>
+        </Pressable>
+      ) : null}
     </Screen>
   );
 }
@@ -413,5 +458,15 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   productRow: { flexDirection: "row", gap: 12 },
-  productChip: { borderWidth: 1, borderRadius: 18, padding: 14, minWidth: 220, gap: 4 }
+  productChip: { borderWidth: 1, borderRadius: 18, padding: 14, minWidth: 220, gap: 4 },
+  removeButton: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingVertical: 14,
+    alignItems: "center"
+  },
+  removeButtonText: {
+    color: "#B3261E",
+    fontWeight: "700"
+  }
 });
