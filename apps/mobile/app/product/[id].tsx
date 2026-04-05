@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ReviewCard } from "@/components/review-card";
 import { Screen } from "@/components/screen";
@@ -29,6 +29,7 @@ export default function ProductDetailsScreen() {
   const [reviewPreviewImage, setReviewPreviewImage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
   const [cartError, setCartError] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const { data } = useQuery({
     queryKey: ["product", id],
     queryFn: () => fetchProduct(id)
@@ -85,6 +86,9 @@ export default function ProductDetailsScreen() {
 
   const product = data?.product;
   const isWishlisted = wishlist.includes(id);
+  const galleryImages = product?.media?.length
+    ? product.media
+    : [{ url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9", type: "image" }];
 
   async function pickReviewImage() {
     if (Platform.OS === "web") {
@@ -142,13 +146,34 @@ export default function ProductDetailsScreen() {
         />
         <View style={styles.heroWrap}>
           <Image
-            source={{ uri: product.media?.[0]?.url || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9" }}
+            source={{ uri: galleryImages[selectedImageIndex]?.url || galleryImages[0]?.url }}
             style={styles.image}
           />
           <View style={[styles.categoryBadge, { backgroundColor: theme.spotlight }]}>
             <Text style={[styles.categoryBadgeText, { color: theme.primary }]}>{product.category}</Text>
           </View>
         </View>
+        {galleryImages.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.galleryRow}>
+              {galleryImages.map((media, index) => (
+                <Pressable
+                  key={`${media.url}-${index}`}
+                  onPress={() => setSelectedImageIndex(index)}
+                  style={[
+                    styles.galleryThumbWrap,
+                    {
+                      borderColor: selectedImageIndex === index ? theme.primary : theme.border,
+                      backgroundColor: selectedImageIndex === index ? theme.spotlight : theme.card
+                    }
+                  ]}
+                >
+                  <Image source={{ uri: media.url }} style={styles.galleryThumb} />
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        ) : null}
 
         <View style={[styles.contentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.content}>
@@ -246,6 +271,20 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 360,
     borderRadius: 28
+  },
+  galleryRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  galleryThumbWrap: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 4
+  },
+  galleryThumb: {
+    width: 86,
+    height: 86,
+    borderRadius: 14
   },
   categoryBadge: {
     position: "absolute",
