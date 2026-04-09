@@ -145,10 +145,26 @@ export default function ProductDetailsScreen() {
           onActionPress={() => router.replace("/(tabs)/shop")}
         />
         <View style={styles.heroWrap}>
-          <Image
-            source={{ uri: galleryImages[selectedImageIndex]?.url || galleryImages[0]?.url }}
-            style={styles.image}
-          />
+          {galleryImages[selectedImageIndex]?.type === "video" ? (
+            Platform.OS === "web" ? (
+              <video
+                src={galleryImages[selectedImageIndex]?.url}
+                style={styles.videoHero as any}
+                controls
+                playsInline
+              />
+            ) : (
+              <View style={[styles.videoFallback, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Text style={{ color: theme.text, fontWeight: "700" }}>Product video</Text>
+                <Text style={{ color: theme.muted }}>Video playback is available on web.</Text>
+              </View>
+            )
+          ) : (
+            <Image
+              source={{ uri: galleryImages[selectedImageIndex]?.url || galleryImages[0]?.url }}
+              style={styles.image}
+            />
+          )}
           <View style={[styles.categoryBadge, { backgroundColor: theme.spotlight }]}>
             <Text style={[styles.categoryBadgeText, { color: theme.primary }]}>{product.category}</Text>
           </View>
@@ -168,7 +184,13 @@ export default function ProductDetailsScreen() {
                     }
                   ]}
                 >
-                  <Image source={{ uri: media.url }} style={styles.galleryThumb} />
+                  {media.type === "video" ? (
+                    <View style={[styles.galleryVideoThumb, { backgroundColor: theme.canvas }]}>
+                      <Text style={{ color: theme.text, fontWeight: "700" }}>Video</Text>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: media.url }} style={styles.galleryThumb} />
+                  )}
                 </Pressable>
               ))}
             </View>
@@ -272,6 +294,22 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 28
   },
+  videoHero: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    objectFit: "cover"
+  },
+  videoFallback: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 20
+  },
   galleryRow: {
     flexDirection: "row",
     gap: 10
@@ -285,6 +323,13 @@ const styles = StyleSheet.create({
     width: 86,
     height: 86,
     borderRadius: 14
+  },
+  galleryVideoThumb: {
+    width: 86,
+    height: 86,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center"
   },
   categoryBadge: {
     position: "absolute",

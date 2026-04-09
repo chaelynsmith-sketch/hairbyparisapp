@@ -24,7 +24,7 @@ const emptyForm = {
   saleAmount: "",
   sku: "",
   quantity: "",
-  imageUrl: "",
+  media: [] as { url: string; type: string; alt?: string }[],
   supplierId: "",
   supplierPlatform: "",
   supplierSourceUrl: "",
@@ -44,7 +44,7 @@ export default function AdminProductsScreen() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const [form, setForm] = useState(emptyForm);
-  const [previewImageUrl, setPreviewImageUrl] = useState("");
+  const [previewMedia, setPreviewMedia] = useState<{ url: string; type: string }[]>([]);
   const [statusMessage, setStatusMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const { data: products = [] } = useQuery({
@@ -99,15 +99,11 @@ export default function AdminProductsScreen() {
           .map((tag) => tag.trim())
           .filter(Boolean),
         description: form.description,
-        media: form.imageUrl
-          ? [
-              {
-                type: "image",
-                url: form.imageUrl,
-                alt: form.name
-              }
-            ]
-          : [],
+        media: form.media.map((item) => ({
+          type: item.type,
+          url: item.url,
+          alt: item.alt || form.name
+        })),
         pricing: {
           baseCurrency: "ZAR",
           amount: Number(form.amount || 0),
@@ -134,7 +130,7 @@ export default function AdminProductsScreen() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       setForm(emptyForm);
-      setPreviewImageUrl("");
+      setPreviewMedia([]);
       setStatusMessage(`${product.name} saved successfully.`);
     },
     onError: (error: any) => {
@@ -158,7 +154,7 @@ export default function AdminProductsScreen() {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["product-categories"] });
       setForm(emptyForm);
-      setPreviewImageUrl("");
+      setPreviewMedia([]);
       setErrorMessage("");
       setStatusMessage(`${product.name} removed from the storefront.`);
     },
@@ -167,31 +163,48 @@ export default function AdminProductsScreen() {
     }
   });
 
-  async function pickProductImage() {
+  async function pickProductMedia() {
     setErrorMessage("");
     setStatusMessage("");
 
     if (Platform.OS === "web") {
       const input = document.createElement("input");
       input.type = "file";
-      input.accept = "image/*";
+      input.accept = "image/*,video/*";
+      input.multiple = true;
 
       input.onchange = async () => {
-        const file = input.files?.[0];
+        const files = Array.from(input.files || []);
 
-        if (!file) {
+        if (!files.length) {
           return;
         }
 
-        setPreviewImageUrl(URL.createObjectURL(file));
-        setStatusMessage("Uploading image...");
+        setStatusMessage(`Uploading ${files.length} media item${files.length > 1 ? "s" : ""}...`);
 
         try {
-          const media = await uploadMedia("product-media", file);
-          setForm((current) => ({ ...current, imageUrl: media.url }));
-          setStatusMessage("Image uploaded.");
+          const uploaded = await Promise.all(files.map((file) => uploadMedia("product-media", file)));
+          setPreviewMedia((current) => [
+            ...current,
+            ...files.map((file, index) => ({
+              url: URL.createObjectURL(file),
+              type: uploaded[index].type
+            }))
+          ]);
+          setForm((current) => ({
+            ...current,
+            media: [
+              ...current.media,
+              ...uploaded.map((item) => ({
+                url: item.url,
+                type: item.type,
+                alt: current.name || "Product media"
+              }))
+            ]
+          }));
+          setStatusMessage(`${uploaded.length} media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
         } catch (error: any) {
-          setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload image.");
+          setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload media.");
         }
       };
 
@@ -200,8 +213,9 @@ export default function AdminProductsScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ["images"],
-      allowsEditing: true,
+      mediaTypes: ["images", "videos"],
+      allowsEditing: false,
+      allowsMultipleSelection: true,
       quality: 0.9
     });
 
@@ -210,12 +224,28 @@ export default function AdminProductsScreen() {
     }
 
     try {
-      const media = await uploadMedia("product-media", result.assets[0]);
-      setPreviewImageUrl(result.assets[0].uri);
-      setForm((current) => ({ ...current, imageUrl: media.url }));
-      setStatusMessage("Image uploaded.");
+      const uploaded = await Promise.all(result.assets.map((asset) => uploadMedia("product-media", asset)));
+      setPreviewMedia((current) => [
+        ...current,
+        ...result.assets.map((asset, index) => ({
+          url: asset.uri,
+          type: uploaded[index].type
+        }))
+      ]);
+      setForm((current) => ({
+        ...current,
+        media: [
+          ...current.media,
+          ...uploaded.map((item) => ({
+            url: item.url,
+            type: item.type,
+            alt: current.name || "Product media"
+          }))
+        ]
+      }));
+      setStatusMessage(`${uploaded.length} media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
     } catch (error: any) {
-      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload image.");
+      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload media.");
     }
   }
 
@@ -233,14 +263,27 @@ export default function AdminProductsScreen() {
       saleAmount: product.pricing?.saleAmount ? String(product.pricing.saleAmount) : "",
       sku: product.inventory?.sku || "",
       quantity: String(product.inventory?.quantity || ""),
-      imageUrl: product.media?.[0]?.url || "",
+      media: Array.isArray(product.media)
+        ? product.media.map((item: any) => ({
+            url: item.url,
+            type: item.type,
+            alt: item.alt
+          }))
+        : [],
       supplierId: product.supplierId || "",
       supplierPlatform: product.sourcing?.platform || "",
       supplierSourceUrl: product.sourcing?.sourceUrl || "",
       supplierReference: product.sourcing?.supplierReference || "",
       supplierNotes: product.sourcing?.notes || ""
     });
-    setPreviewImageUrl(product.media?.[0]?.url || "");
+    setPreviewMedia(
+      Array.isArray(product.media)
+        ? product.media.map((item: any) => ({
+            url: item.url,
+            type: item.type || "image"
+          }))
+        : []
+    );
   }
 
   const isEditing = Boolean(form._id);
@@ -254,7 +297,7 @@ export default function AdminProductsScreen() {
         onActionPress={() => {
           if (form._id || form.name || form.description || form.amount || form.sku) {
             setForm(emptyForm);
-            setPreviewImageUrl("");
+            setPreviewMedia([]);
             setErrorMessage("");
             setStatusMessage("Editor cleared.");
             return;
@@ -351,10 +394,45 @@ export default function AdminProductsScreen() {
             : "No suppliers yet. Add suppliers from the admin dashboard first."}
         </Text>
 
-        <Pressable onPress={pickProductImage} style={[styles.secondaryButton, { borderColor: theme.border }]}>
-          <Text style={{ color: theme.text }}>{form.imageUrl ? "Replace image" : "Upload image"}</Text>
+        <Pressable onPress={pickProductMedia} style={[styles.secondaryButton, { borderColor: theme.border }]}>
+          <Text style={{ color: theme.text }}>
+            {form.media.length ? "Add more images or videos" : "Upload images or videos"}
+          </Text>
         </Pressable>
-        {previewImageUrl || form.imageUrl ? <Image source={{ uri: previewImageUrl || form.imageUrl }} style={styles.previewImage} /> : null}
+        {previewMedia.length ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.previewRow}>
+              {previewMedia.map((item, index) => (
+                <View key={`${item.url}-${index}`} style={styles.previewTile}>
+                  {item.type === "video" ? (
+                    Platform.OS === "web" ? (
+                      <video src={item.url} style={styles.previewVideo as any} controls playsInline />
+                    ) : (
+                      <View style={[styles.videoFallback, { backgroundColor: theme.canvas, borderColor: theme.border }]}>
+                        <Text style={{ color: theme.text, fontWeight: "700" }}>Video uploaded</Text>
+                        <Text style={{ color: theme.muted }}>Visible on web gallery</Text>
+                      </View>
+                    )
+                  ) : (
+                    <Image source={{ uri: item.url }} style={styles.previewImage} />
+                  )}
+                  <Pressable
+                    onPress={() => {
+                      setPreviewMedia((current) => current.filter((_, currentIndex) => currentIndex !== index));
+                      setForm((current) => ({
+                        ...current,
+                        media: current.media.filter((_, currentIndex) => currentIndex !== index)
+                      }));
+                    }}
+                    style={[styles.removeMediaButton, { borderColor: theme.border, backgroundColor: theme.card }]}
+                  >
+                    <Text style={{ color: theme.text, fontWeight: "700" }}>Remove</Text>
+                  </Pressable>
+                </View>
+              ))}
+            </View>
+          </ScrollView>
+        ) : null}
 
         <View style={styles.actionRow}>
           <Pressable
@@ -375,7 +453,11 @@ export default function AdminProductsScreen() {
           </Pressable>
         </View>
         {form.slug ? <Text style={{ color: theme.muted }}>Slug preview: {slugify(form.slug)}</Text> : null}
-        {form.imageUrl ? <Text style={{ color: theme.muted }}>Image attached and ready to save.</Text> : null}
+        {form.media.length ? (
+          <Text style={{ color: theme.muted }}>
+            {form.media.length} media item{form.media.length > 1 ? "s" : ""} attached and ready to save.
+          </Text>
+        ) : null}
       </View>
 
       <View style={styles.libraryHeader}>
@@ -464,7 +546,26 @@ const styles = StyleSheet.create({
   },
   primaryButton: { flex: 1, borderRadius: 16, padding: 16, alignItems: "center" },
   primaryButtonText: { color: "#FFFFFF", fontWeight: "700" },
-  previewImage: { width: "100%", height: 220, borderRadius: 18 },
+  previewRow: {
+    flexDirection: "row",
+    gap: 12
+  },
+  previewTile: {
+    width: 220,
+    gap: 8
+  },
+  previewImage: { width: 220, height: 220, borderRadius: 18 },
+  previewVideo: { width: 220, height: 220, borderRadius: 18, objectFit: "cover" },
+  videoFallback: {
+    width: 220,
+    height: 220,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    padding: 16
+  },
   libraryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -481,5 +582,11 @@ const styles = StyleSheet.create({
   removeButtonText: {
     color: "#B3261E",
     fontWeight: "700"
+  },
+  removeMediaButton: {
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    alignItems: "center"
   }
 });
