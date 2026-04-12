@@ -34,7 +34,6 @@ const variantSchema = new mongoose.Schema(
     price: Number,
     salePrice: Number,
     quantity: { type: Number, default: 0 },
-    supplierCost: { type: Number, default: 0 },
     media: [mediaSchema]
   },
   { timestamps: false }

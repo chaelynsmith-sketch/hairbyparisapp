@@ -142,7 +142,6 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
       supplierId: item.productId.supplierId,
       name: item.variantLabel ? `${item.productId.name} - ${item.variantLabel}` : item.productId.name,
       sku: item.sku || item.productId.inventory.sku,
-      supplierCost: item.productId.variants?.find((variant) => variant.id === item.variantId || variant._id?.toString() === item.variantId)?.supplierCost || 0,
       supplierPlatform: item.productId.sourcing?.platform,
       supplierSourceUrl: item.productId.sourcing?.sourceUrl,
       supplierReference: item.productId.sourcing?.supplierReference,

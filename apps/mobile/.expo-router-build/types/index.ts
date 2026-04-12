@@ -12,7 +12,6 @@ export type StorefrontProduct = {
     price?: number;
     salePrice?: number;
     quantity?: number;
-    supplierCost?: number;
     media?: { type: string; url: string; alt?: string }[];
   }[];
   displayPrice: number;

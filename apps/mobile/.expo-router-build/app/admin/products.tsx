@@ -20,7 +20,6 @@ type ProductVariantForm = {
   price: string;
   salePrice: string;
   quantity: string;
-  supplierCost: string;
   media: ProductMedia[];
   previewMedia: ProductMedia[];
 };
@@ -126,7 +125,6 @@ export default function AdminProductsScreen() {
             price: variant.price ? Number(variant.price) : undefined,
             salePrice: variant.salePrice ? Number(variant.salePrice) : undefined,
             quantity: Number(variant.quantity || 0),
-            supplierCost: Number(variant.supplierCost || 0),
             media: variant.media.map((item) => ({
               type: item.type,
               url: item.url,
@@ -298,7 +296,6 @@ export default function AdminProductsScreen() {
           price: current.amount,
           salePrice: "",
           quantity: "0",
-          supplierCost: "",
           media: [],
           previewMedia: []
         }
@@ -435,7 +432,6 @@ export default function AdminProductsScreen() {
             price: variant.price ? String(variant.price) : "",
             salePrice: variant.salePrice ? String(variant.salePrice) : "",
             quantity: String(variant.quantity || 0),
-            supplierCost: variant.supplierCost ? String(variant.supplierCost) : "",
             media: Array.isArray(variant.media)
               ? variant.media.map((item: any) => ({
                   url: item.url,
@@ -634,8 +630,7 @@ export default function AdminProductsScreen() {
                 ["sku", "Variant SKU"],
                 ["price", "Variant price"],
                 ["salePrice", "Variant sale price"],
-                ["quantity", "Variant stock quantity"],
-                ["supplierCost", "Supplier cost for this option"]
+                ["quantity", "Variant stock quantity"]
               ].map(([key, label]) => (
                 <TextInput
                   key={key}

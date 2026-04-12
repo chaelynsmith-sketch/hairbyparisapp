@@ -15,25 +15,16 @@ async function createPayoutsForOrder(order) {
   const suppliers = await Supplier.find({ _id: { $in: supplierIds } });
   const supplierMap = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
   const supplierTotals = new Map();
-  let unassignedTotal = 0;
 
   for (const item of order.items) {
     const lineTotal = roundMoney(item.unitPrice * item.quantity);
     if (!item.supplierId) {
-      unassignedTotal += lineTotal;
       continue;
     }
 
-    const supplier = supplierMap.get(item.supplierId.toString());
-    const variantSupplierCost = Number(item.supplierCost || 0);
-    const fixedAmount = variantSupplierCost || Number(supplier?.payoutConfig?.fixedAmount || 0);
-    const payoutRate = Number(supplier?.payoutConfig?.payoutRatePercentage ?? 70);
-    const supplierAmount = fixedAmount > 0
-      ? roundMoney(Math.min(fixedAmount * item.quantity, lineTotal))
-      : roundMoney(lineTotal * (payoutRate / 100));
     supplierTotals.set(
       item.supplierId.toString(),
-      roundMoney((supplierTotals.get(item.supplierId.toString()) || 0) + supplierAmount)
+      roundMoney((supplierTotals.get(item.supplierId.toString()) || 0) + lineTotal)
     );
   }
 
@@ -63,7 +54,7 @@ async function createPayoutsForOrder(order) {
     orderId: order.id,
     recipientType: "admin",
     recipientName: "Hair By Paris Admin",
-    amount: adminAmount < 0 ? 0 : adminAmount + unassignedTotal,
+    amount: adminAmount < 0 ? 0 : adminAmount,
     currency: order.totals.currency,
     method: "store_settlement",
     destinationLabel: "Admin operating account",

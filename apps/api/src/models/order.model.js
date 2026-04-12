@@ -8,7 +8,6 @@ const orderItemSchema = new mongoose.Schema(
     supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     name: String,
     sku: String,
-    supplierCost: Number,
     supplierPlatform: String,
     supplierSourceUrl: String,
     supplierReference: String,

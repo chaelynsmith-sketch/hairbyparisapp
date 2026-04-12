@@ -15,8 +15,6 @@ const supplierSchema = new mongoose.Schema(
       defaultCurrency: String
     },
     payoutConfig: {
-      payoutRatePercentage: { type: Number, default: 70 },
-      fixedAmount: { type: Number, default: 0 },
       method: { type: String, default: "manual_transfer" },
       destinationLabel: String
     },
