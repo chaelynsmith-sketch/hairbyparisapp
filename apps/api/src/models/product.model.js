@@ -27,6 +27,19 @@ const pricingSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const variantSchema = new mongoose.Schema(
+  {
+    label: { type: String, required: true },
+    sku: String,
+    price: Number,
+    salePrice: Number,
+    quantity: { type: Number, default: 0 },
+    supplierCost: { type: Number, default: 0 },
+    media: [mediaSchema]
+  },
+  { timestamps: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: "Store", index: true, required: true },
@@ -41,6 +54,7 @@ const productSchema = new mongoose.Schema(
     description: { type: String, required: true },
     tags: [String],
     media: [mediaSchema],
+    variants: [variantSchema],
     pricing: pricingSchema,
     inventory: inventorySchema,
     attributes: {

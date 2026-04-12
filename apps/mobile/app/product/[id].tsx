@@ -30,6 +30,7 @@ export default function ProductDetailsScreen() {
   const [cartMessage, setCartMessage] = useState("");
   const [cartError, setCartError] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
   const { data } = useQuery({
     queryKey: ["product", id],
     queryFn: () => fetchProduct(id)
@@ -42,11 +43,11 @@ export default function ProductDetailsScreen() {
   const mutation = useMutation({
     mutationFn: () => {
       if (!user) {
-        addGuestCartItem(product, 1);
+        addGuestCartItem(product, 1, selectedVariant?._id);
         return Promise.resolve(null);
       }
 
-      return addToCart(id, 1);
+      return addToCart(id, 1, selectedVariant?._id);
     },
     onSuccess: (cart) => {
       if (!user) {
@@ -86,7 +87,10 @@ export default function ProductDetailsScreen() {
 
   const product = data?.product;
   const isWishlisted = wishlist.includes(id);
-  const galleryImages: { url: string; type: string }[] = product?.media || [];
+  const variants = product?.variants || [];
+  const selectedVariant = variants.find((variant: any) => variant._id === selectedVariantId) || variants[0];
+  const effectivePrice = selectedVariant?.salePrice || selectedVariant?.price || product?.pricing.saleAmount || product?.pricing.amount || 0;
+  const galleryImages: { url: string; type: string }[] = selectedVariant?.media?.length ? selectedVariant.media : product?.media || [];
 
   async function pickReviewImage() {
     if (Platform.OS === "web") {
@@ -205,10 +209,42 @@ export default function ProductDetailsScreen() {
           <View style={styles.content}>
             <Text style={[styles.name, { color: theme.text }]}>{product.name}</Text>
             <Text style={[styles.price, { color: theme.primary }]}>
-              {product.pricing.baseCurrency} {(product.pricing.saleAmount || product.pricing.amount).toFixed(2)}
+              {product.pricing.baseCurrency} {effectivePrice.toFixed(2)}
             </Text>
             <Text style={{ color: theme.text, lineHeight: 24 }}>{product.description}</Text>
           </View>
+
+          {variants.length ? (
+            <View style={styles.variantSection}>
+              <Text style={[styles.variantTitle, { color: theme.text }]}>Choose size / length</Text>
+              <View style={styles.variantRow}>
+                {variants.map((variant: any) => {
+                  const active = selectedVariant?._id === variant._id;
+                  return (
+                    <Pressable
+                      key={variant._id}
+                      onPress={() => {
+                        setSelectedVariantId(variant._id);
+                        setSelectedImageIndex(0);
+                      }}
+                      style={[
+                        styles.variantPill,
+                        {
+                          borderColor: active ? theme.primary : theme.border,
+                          backgroundColor: active ? theme.spotlight : theme.canvas
+                        }
+                      ]}
+                    >
+                      <Text style={{ color: active ? theme.primary : theme.text, fontWeight: "800" }}>{variant.label}</Text>
+                      <Text style={{ color: theme.muted, fontSize: 12 }}>
+                        {product.pricing.baseCurrency} {(variant.salePrice || variant.price || product.pricing.amount).toFixed(2)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { backgroundColor: theme.canvas }]}>
@@ -221,7 +257,7 @@ export default function ProductDetailsScreen() {
             </View>
             <View style={[styles.statCard, { backgroundColor: theme.canvas }]}>
               <Text style={[styles.statLabel, { color: theme.muted }]}>Stock</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{product.inventory.quantity}</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{selectedVariant?.quantity ?? product.inventory.quantity}</Text>
             </View>
           </View>
         </View>
@@ -367,6 +403,25 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 10
+  },
+  variantSection: {
+    gap: 10
+  },
+  variantTitle: {
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  variantRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  variantPill: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 3
   },
   name: {
     fontSize: 30,

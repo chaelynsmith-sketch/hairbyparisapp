@@ -12,6 +12,18 @@ import { createProduct, updateProduct } from "@/services/catalog-service";
 import { uploadMedia } from "@/services/upload-service";
 
 const defaultCategories = ["Hair Products", "Hair Extensions", "Tools", "Wigs"];
+type ProductMedia = { url: string; type: string; alt?: string };
+type ProductVariantForm = {
+  _id?: string;
+  label: string;
+  sku: string;
+  price: string;
+  salePrice: string;
+  quantity: string;
+  supplierCost: string;
+  media: ProductMedia[];
+  previewMedia: ProductMedia[];
+};
 
 const emptyForm = {
   _id: "",
@@ -24,7 +36,8 @@ const emptyForm = {
   saleAmount: "",
   sku: "",
   quantity: "",
-  media: [] as { url: string; type: string; alt?: string }[],
+  media: [] as ProductMedia[],
+  variants: [] as ProductVariantForm[],
   supplierId: "",
   supplierPlatform: "",
   supplierSourceUrl: "",
@@ -104,6 +117,22 @@ export default function AdminProductsScreen() {
           url: item.url,
           alt: item.alt || form.name
         })),
+        variants: form.variants
+          .filter((variant) => variant.label.trim())
+          .map((variant) => ({
+            ...(variant._id ? { _id: variant._id } : {}),
+            label: variant.label.trim(),
+            sku: variant.sku.trim() || undefined,
+            price: variant.price ? Number(variant.price) : undefined,
+            salePrice: variant.salePrice ? Number(variant.salePrice) : undefined,
+            quantity: Number(variant.quantity || 0),
+            supplierCost: Number(variant.supplierCost || 0),
+            media: variant.media.map((item) => ({
+              type: item.type,
+              url: item.url,
+              alt: item.alt || `${form.name} ${variant.label}`.trim()
+            }))
+          })),
         pricing: {
           baseCurrency: "ZAR",
           amount: Number(form.amount || 0),
@@ -249,6 +278,134 @@ export default function AdminProductsScreen() {
     }
   }
 
+  function updateVariant(index: number, patch: Partial<ProductVariantForm>) {
+    setForm((current) => ({
+      ...current,
+      variants: current.variants.map((variant, currentIndex) =>
+        currentIndex === index ? { ...variant, ...patch } : variant
+      )
+    }));
+  }
+
+  function addVariant() {
+    setForm((current) => ({
+      ...current,
+      variants: [
+        ...current.variants,
+        {
+          label: "",
+          sku: "",
+          price: current.amount,
+          salePrice: "",
+          quantity: "0",
+          supplierCost: "",
+          media: [],
+          previewMedia: []
+        }
+      ]
+    }));
+  }
+
+  async function pickVariantMedia(index: number) {
+    setErrorMessage("");
+    setStatusMessage("");
+
+    if (Platform.OS === "web") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/*,video/*";
+      input.multiple = true;
+
+      input.onchange = async () => {
+        const files = Array.from(input.files || []);
+
+        if (!files.length) {
+          return;
+        }
+
+        setStatusMessage(`Uploading ${files.length} variant media item${files.length > 1 ? "s" : ""}...`);
+
+        try {
+          const uploaded = await Promise.all(files.map((file) => uploadMedia("product-media", file)));
+          setForm((current) => ({
+            ...current,
+            variants: current.variants.map((variant, currentIndex) =>
+              currentIndex === index
+                ? {
+                    ...variant,
+                    previewMedia: [
+                      ...variant.previewMedia,
+                      ...files.map((file, fileIndex) => ({
+                        url: URL.createObjectURL(file),
+                        type: uploaded[fileIndex].type
+                      }))
+                    ],
+                    media: [
+                      ...variant.media,
+                      ...uploaded.map((item) => ({
+                        url: item.url,
+                        type: item.type,
+                        alt: `${current.name} ${variant.label}`.trim() || "Variant media"
+                      }))
+                    ]
+                  }
+                : variant
+            )
+          }));
+          setStatusMessage(`${uploaded.length} variant media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
+        } catch (error: any) {
+          setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload variant media.");
+        }
+      };
+
+      input.click();
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images", "videos"],
+      allowsEditing: false,
+      allowsMultipleSelection: true,
+      quality: 0.9
+    });
+
+    if (result.canceled) {
+      return;
+    }
+
+    try {
+      const uploaded = await Promise.all(result.assets.map((asset) => uploadMedia("product-media", asset)));
+      setForm((current) => ({
+        ...current,
+        variants: current.variants.map((variant, currentIndex) =>
+          currentIndex === index
+            ? {
+                ...variant,
+                previewMedia: [
+                  ...variant.previewMedia,
+                  ...result.assets.map((asset, assetIndex) => ({
+                    url: asset.uri,
+                    type: uploaded[assetIndex].type
+                  }))
+                ],
+                media: [
+                  ...variant.media,
+                  ...uploaded.map((item) => ({
+                    url: item.url,
+                    type: item.type,
+                    alt: `${current.name} ${variant.label}`.trim() || "Variant media"
+                  }))
+                ]
+              }
+            : variant
+        )
+      }));
+      setStatusMessage(`${uploaded.length} variant media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
+    } catch (error: any) {
+      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload variant media.");
+    }
+  }
+
   function handleSelectProduct(product: any) {
     setErrorMessage("");
     setStatusMessage(`Editing ${product.name}`);
@@ -268,6 +425,31 @@ export default function AdminProductsScreen() {
             url: item.url,
             type: item.type,
             alt: item.alt
+          }))
+        : [],
+      variants: Array.isArray(product.variants)
+        ? product.variants.map((variant: any) => ({
+            _id: variant._id,
+            label: variant.label || "",
+            sku: variant.sku || "",
+            price: variant.price ? String(variant.price) : "",
+            salePrice: variant.salePrice ? String(variant.salePrice) : "",
+            quantity: String(variant.quantity || 0),
+            supplierCost: variant.supplierCost ? String(variant.supplierCost) : "",
+            media: Array.isArray(variant.media)
+              ? variant.media.map((item: any) => ({
+                  url: item.url,
+                  type: item.type || "image",
+                  alt: item.alt
+                }))
+              : [],
+            previewMedia: Array.isArray(variant.media)
+              ? variant.media.map((item: any) => ({
+                  url: item.url,
+                  type: item.type || "image",
+                  alt: item.alt
+                }))
+              : []
           }))
         : [],
       supplierId: product.supplierId || "",
@@ -434,6 +616,97 @@ export default function AdminProductsScreen() {
           </ScrollView>
         ) : null}
 
+        <View style={[styles.variantCard, { backgroundColor: theme.canvas, borderColor: theme.border }]}>
+          <View style={styles.libraryHeader}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.sectionTitle, { color: theme.text }]}>Sizes / lengths</Text>
+              <Text style={{ color: theme.muted }}>Add adjacent customer options with their own price, stock, and media.</Text>
+            </View>
+            <Pressable onPress={addVariant} style={[styles.smallButton, { borderColor: theme.border, backgroundColor: theme.card }]}>
+              <Text style={{ color: theme.text, fontWeight: "800" }}>Add option</Text>
+            </Pressable>
+          </View>
+          {form.variants.map((variant, index) => (
+            <View key={variant._id || `variant-${index}`} style={[styles.variantEditor, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Text style={{ color: theme.text, fontWeight: "800" }}>Option {index + 1}</Text>
+              {[
+                ["label", "Length / size label, e.g. 12 inch"],
+                ["sku", "Variant SKU"],
+                ["price", "Variant price"],
+                ["salePrice", "Variant sale price"],
+                ["quantity", "Variant stock quantity"],
+                ["supplierCost", "Supplier cost for this option"]
+              ].map(([key, label]) => (
+                <TextInput
+                  key={key}
+                  value={(variant as any)[key]}
+                  onChangeText={(value) => updateVariant(index, { [key]: value } as Partial<ProductVariantForm>)}
+                  placeholder={label}
+                  placeholderTextColor={theme.muted}
+                  style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
+                />
+              ))}
+              <Pressable onPress={() => pickVariantMedia(index)} style={[styles.secondaryButton, { borderColor: theme.border }]}>
+                <Text style={{ color: theme.text }}>
+                  {variant.media.length ? "Add more media for this option" : "Upload option images or videos"}
+                </Text>
+              </Pressable>
+              {variant.previewMedia.length ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  <View style={styles.previewRow}>
+                    {variant.previewMedia.map((item, mediaIndex) => (
+                      <View key={`${item.url}-${mediaIndex}`} style={styles.previewTile}>
+                        {item.type === "video" ? (
+                          Platform.OS === "web" ? (
+                            <video src={item.url} style={styles.previewVideo as any} controls playsInline />
+                          ) : (
+                            <View style={[styles.videoFallback, { backgroundColor: theme.canvas, borderColor: theme.border }]}>
+                              <Text style={{ color: theme.text, fontWeight: "700" }}>Video uploaded</Text>
+                              <Text style={{ color: theme.muted }}>Visible on web gallery</Text>
+                            </View>
+                          )
+                        ) : (
+                          <Image source={{ uri: item.url }} style={styles.previewImage} />
+                        )}
+                        <Pressable
+                          onPress={() => {
+                            setForm((current) => ({
+                              ...current,
+                              variants: current.variants.map((currentVariant, currentIndex) =>
+                                currentIndex === index
+                                  ? {
+                                      ...currentVariant,
+                                      media: currentVariant.media.filter((_, currentMediaIndex) => currentMediaIndex !== mediaIndex),
+                                      previewMedia: currentVariant.previewMedia.filter((_, currentMediaIndex) => currentMediaIndex !== mediaIndex)
+                                    }
+                                  : currentVariant
+                              )
+                            }));
+                          }}
+                          style={[styles.removeMediaButton, { borderColor: theme.border, backgroundColor: theme.card }]}
+                        >
+                          <Text style={{ color: theme.text, fontWeight: "700" }}>Remove</Text>
+                        </Pressable>
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              ) : null}
+              <Pressable
+                onPress={() =>
+                  setForm((current) => ({
+                    ...current,
+                    variants: current.variants.filter((_, currentIndex) => currentIndex !== index)
+                  }))
+                }
+                style={[styles.removeMediaButton, { borderColor: "#B3261E", backgroundColor: theme.card }]}
+              >
+                <Text style={styles.removeButtonText}>Remove option</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.actionRow}>
           <Pressable
             onPress={() => {
@@ -533,6 +806,9 @@ const styles = StyleSheet.create({
   categories: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   categoryPill: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 999 },
   secondaryButton: { borderWidth: 1, borderRadius: 16, padding: 14, alignItems: "center" },
+  smallButton: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
+  variantCard: { borderWidth: 1, borderRadius: 20, padding: 14, gap: 12 },
+  variantEditor: { borderWidth: 1, borderRadius: 18, padding: 14, gap: 10 },
   actionRow: {
     flexDirection: "row",
     gap: 10

@@ -14,11 +14,16 @@ type ProductCardProps = {
 
 export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }: ProductCardProps) {
   const theme = useTheme();
-  const coverImage = product.media?.find((item) => item.type === "image" && item.url)?.url;
+  const coverImage =
+    product.media?.find((item) => item.type === "image" && item.url)?.url ||
+    product.variants?.flatMap((variant) => variant.media || []).find((item) => item.type === "image" && item.url)?.url;
   const [imageFailed, setImageFailed] = useState(false);
   const showImage = Boolean(coverImage && !imageFailed);
-  const price = product.displayPrice ?? product.pricing.saleAmount ?? product.pricing.amount;
-  const compareAt = product.pricing.saleAmount ? product.pricing.amount : null;
+  const variantPrices = product.variants?.map((variant) => variant.salePrice || variant.price).filter((price): price is number => Boolean(price)) || [];
+  const price = variantPrices.length
+    ? Math.min(...variantPrices)
+    : product.displayPrice ?? product.pricing.saleAmount ?? product.pricing.amount;
+  const compareAt = !variantPrices.length && product.pricing.saleAmount ? product.pricing.amount : null;
 
   return (
     <Pressable onPress={onPress} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -48,7 +53,7 @@ export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }
         <View style={styles.footer}>
           <View>
             <Text style={[styles.price, { color: theme.primary }]}>
-              {product.displayCurrency} {price.toFixed(2)}
+              {variantPrices.length ? "From " : ""}{product.displayCurrency} {price.toFixed(2)}
             </Text>
             {compareAt ? (
               <Text style={[styles.compareAt, { color: theme.muted }]}>

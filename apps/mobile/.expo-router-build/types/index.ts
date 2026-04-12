@@ -5,6 +5,16 @@ export type StorefrontProduct = {
   category: string;
   description: string;
   media: { type: string; url: string; alt?: string }[];
+  variants?: {
+    _id: string;
+    label: string;
+    sku?: string;
+    price?: number;
+    salePrice?: number;
+    quantity?: number;
+    supplierCost?: number;
+    media?: { type: string; url: string; alt?: string }[];
+  }[];
   displayPrice: number;
   displayCurrency: string;
   pricing: {
@@ -40,7 +50,11 @@ export type AppUser = {
 };
 
 export type CartItem = {
+  _id?: string;
   productId: StorefrontProduct;
+  variantId?: string;
+  variantLabel?: string;
+  sku?: string;
   quantity: number;
   unitPrice: number;
   currency: string;

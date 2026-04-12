@@ -8,6 +8,10 @@ function sanitizePublicProduct(product) {
   const value = product.toObject ? product.toObject() : { ...product };
   delete value.sourcing;
   value.media = normalizeProductMedia(value.media || []);
+  value.variants = (value.variants || []).map((variant) => ({
+    ...variant,
+    media: normalizeProductMedia(variant.media || [])
+  }));
   return value;
 }
 

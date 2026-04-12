@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { useState } from "react";
-import { Image, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { ReviewCard } from "@/components/review-card";
 import { Screen } from "@/components/screen";
@@ -29,6 +29,8 @@ export default function ProductDetailsScreen() {
   const [reviewPreviewImage, setReviewPreviewImage] = useState("");
   const [cartMessage, setCartMessage] = useState("");
   const [cartError, setCartError] = useState("");
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVariantId, setSelectedVariantId] = useState("");
   const { data } = useQuery({
     queryKey: ["product", id],
     queryFn: () => fetchProduct(id)
@@ -41,11 +43,11 @@ export default function ProductDetailsScreen() {
   const mutation = useMutation({
     mutationFn: () => {
       if (!user) {
-        addGuestCartItem(product, 1);
+        addGuestCartItem(product, 1, selectedVariant?._id);
         return Promise.resolve(null);
       }
 
-      return addToCart(id, 1);
+      return addToCart(id, 1, selectedVariant?._id);
     },
     onSuccess: (cart) => {
       if (!user) {
@@ -85,6 +87,10 @@ export default function ProductDetailsScreen() {
 
   const product = data?.product;
   const isWishlisted = wishlist.includes(id);
+  const variants = product?.variants || [];
+  const selectedVariant = variants.find((variant: any) => variant._id === selectedVariantId) || variants[0];
+  const effectivePrice = selectedVariant?.salePrice || selectedVariant?.price || product?.pricing.saleAmount || product?.pricing.amount || 0;
+  const galleryImages: { url: string; type: string }[] = selectedVariant?.media?.length ? selectedVariant.media : product?.media || [];
 
   async function pickReviewImage() {
     if (Platform.OS === "web") {
@@ -141,23 +147,104 @@ export default function ProductDetailsScreen() {
           onActionPress={() => router.replace("/(tabs)/shop")}
         />
         <View style={styles.heroWrap}>
-          <Image
-            source={{ uri: product.media?.[0]?.url || "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9" }}
-            style={styles.image}
-          />
+          {!galleryImages.length ? (
+            <View style={[styles.emptyImageHero, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Feather name="image" size={36} color={theme.muted} />
+              <Text style={{ color: theme.text, fontWeight: "700" }}>No product image yet</Text>
+              <Text style={{ color: theme.muted }}>Add product media from the admin catalog manager.</Text>
+            </View>
+          ) : galleryImages[selectedImageIndex]?.type === "video" ? (
+            Platform.OS === "web" ? (
+              <video
+                src={galleryImages[selectedImageIndex]?.url}
+                style={styles.videoHero as any}
+                controls
+                playsInline
+              />
+            ) : (
+              <View style={[styles.videoFallback, { backgroundColor: theme.card, borderColor: theme.border }]}>
+                <Text style={{ color: theme.text, fontWeight: "700" }}>Product video</Text>
+                <Text style={{ color: theme.muted }}>Video playback is available on web.</Text>
+              </View>
+            )
+          ) : (
+            <Image
+              source={{ uri: galleryImages[selectedImageIndex]?.url || galleryImages[0]?.url }}
+              style={styles.image}
+            />
+          )}
           <View style={[styles.categoryBadge, { backgroundColor: theme.spotlight }]}>
             <Text style={[styles.categoryBadgeText, { color: theme.primary }]}>{product.category}</Text>
           </View>
         </View>
+        {galleryImages.length > 1 ? (
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.galleryRow}>
+              {galleryImages.map((media, index) => (
+                <Pressable
+                  key={`${media.url}-${index}`}
+                  onPress={() => setSelectedImageIndex(index)}
+                  style={[
+                    styles.galleryThumbWrap,
+                    {
+                      borderColor: selectedImageIndex === index ? theme.primary : theme.border,
+                      backgroundColor: selectedImageIndex === index ? theme.spotlight : theme.card
+                    }
+                  ]}
+                >
+                  {media.type === "video" ? (
+                    <View style={[styles.galleryVideoThumb, { backgroundColor: theme.canvas }]}>
+                      <Text style={{ color: theme.text, fontWeight: "700" }}>Video</Text>
+                    </View>
+                  ) : (
+                    <Image source={{ uri: media.url }} style={styles.galleryThumb} />
+                  )}
+                </Pressable>
+              ))}
+            </View>
+          </ScrollView>
+        ) : null}
 
         <View style={[styles.contentCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <View style={styles.content}>
             <Text style={[styles.name, { color: theme.text }]}>{product.name}</Text>
             <Text style={[styles.price, { color: theme.primary }]}>
-              {product.pricing.baseCurrency} {(product.pricing.saleAmount || product.pricing.amount).toFixed(2)}
+              {product.pricing.baseCurrency} {effectivePrice.toFixed(2)}
             </Text>
             <Text style={{ color: theme.text, lineHeight: 24 }}>{product.description}</Text>
           </View>
+
+          {variants.length ? (
+            <View style={styles.variantSection}>
+              <Text style={[styles.variantTitle, { color: theme.text }]}>Choose size / length</Text>
+              <View style={styles.variantRow}>
+                {variants.map((variant: any) => {
+                  const active = selectedVariant?._id === variant._id;
+                  return (
+                    <Pressable
+                      key={variant._id}
+                      onPress={() => {
+                        setSelectedVariantId(variant._id);
+                        setSelectedImageIndex(0);
+                      }}
+                      style={[
+                        styles.variantPill,
+                        {
+                          borderColor: active ? theme.primary : theme.border,
+                          backgroundColor: active ? theme.spotlight : theme.canvas
+                        }
+                      ]}
+                    >
+                      <Text style={{ color: active ? theme.primary : theme.text, fontWeight: "800" }}>{variant.label}</Text>
+                      <Text style={{ color: theme.muted, fontSize: 12 }}>
+                        {product.pricing.baseCurrency} {(variant.salePrice || variant.price || product.pricing.amount).toFixed(2)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.statsRow}>
             <View style={[styles.statCard, { backgroundColor: theme.canvas }]}>
@@ -170,7 +257,7 @@ export default function ProductDetailsScreen() {
             </View>
             <View style={[styles.statCard, { backgroundColor: theme.canvas }]}>
               <Text style={[styles.statLabel, { color: theme.muted }]}>Stock</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{product.inventory.quantity}</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{selectedVariant?.quantity ?? product.inventory.quantity}</Text>
             </View>
           </View>
         </View>
@@ -247,6 +334,53 @@ const styles = StyleSheet.create({
     height: 360,
     borderRadius: 28
   },
+  videoHero: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    objectFit: "cover"
+  },
+  videoFallback: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 20
+  },
+  emptyImageHero: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 20
+  },
+  galleryRow: {
+    flexDirection: "row",
+    gap: 10
+  },
+  galleryThumbWrap: {
+    borderWidth: 1,
+    borderRadius: 18,
+    padding: 4
+  },
+  galleryThumb: {
+    width: 86,
+    height: 86,
+    borderRadius: 14
+  },
+  galleryVideoThumb: {
+    width: 86,
+    height: 86,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center"
+  },
   categoryBadge: {
     position: "absolute",
     left: 16,
@@ -269,6 +403,25 @@ const styles = StyleSheet.create({
   },
   content: {
     gap: 10
+  },
+  variantSection: {
+    gap: 10
+  },
+  variantTitle: {
+    fontSize: 15,
+    fontWeight: "800"
+  },
+  variantRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10
+  },
+  variantPill: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 3
   },
   name: {
     fontSize: 30,

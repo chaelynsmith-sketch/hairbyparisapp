@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
@@ -26,6 +26,8 @@ export default function AdminOrdersScreen() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [trackingUrl, setTrackingUrl] = useState("");
   const [supplierDispatchStatus, setSupplierDispatchStatus] = useState("manual_review");
+  const [supplierOrderReference, setSupplierOrderReference] = useState("");
+  const [supplierNotes, setSupplierNotes] = useState("");
   const [orderStatus, setOrderStatus] = useState("processing");
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -41,6 +43,8 @@ export default function AdminOrdersScreen() {
         trackingNumber,
         trackingUrl,
         supplierDispatchStatus,
+        supplierOrderReference,
+        supplierNotes,
         status: orderStatus
       }),
     onSuccess: () => {
@@ -74,6 +78,8 @@ export default function AdminOrdersScreen() {
                 setTrackingNumber(order.fulfillment?.trackingNumber || "");
                 setTrackingUrl(order.fulfillment?.trackingUrl || "");
                 setSupplierDispatchStatus(order.fulfillment?.supplierDispatchStatus || "manual_review");
+                setSupplierOrderReference(order.fulfillment?.supplierOrderReference || "");
+                setSupplierNotes(order.fulfillment?.supplierNotes || "");
                 setOrderStatus(order.status || "processing");
                 setFeedbackMessage("");
                 setErrorMessage("");
@@ -91,6 +97,43 @@ export default function AdminOrdersScreen() {
         {selectedOrder ? (
           <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>Edit shipping details</Text>
+            <Text style={{ color: theme.muted }}>
+              Supplier source: {selectedOrder.items?.[0]?.supplierPlatform || "Not linked"}
+            </Text>
+            {selectedOrder.items?.[0]?.supplierSourceUrl ? (
+              <Pressable
+                onPress={async () => {
+                  const sourceUrl = selectedOrder.items[0].supplierSourceUrl;
+                  if (Platform.OS === "web") {
+                    window.open(sourceUrl, "_blank", "noopener,noreferrer");
+                    return;
+                  }
+
+                  await Linking.openURL(sourceUrl);
+                }}
+                style={styles.linkButton}
+              >
+                <Text style={{ color: theme.primary, fontWeight: "700" }}>Open supplier link</Text>
+              </Pressable>
+            ) : null}
+            <Text style={{ color: theme.muted }}>
+              Supplier reference: {selectedOrder.items?.[0]?.supplierReference || "Not linked"}
+            </Text>
+            <TextInput
+              value={supplierOrderReference}
+              onChangeText={setSupplierOrderReference}
+              placeholder="Supplier order reference"
+              placeholderTextColor={theme.muted}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
+            />
+            <TextInput
+              value={supplierNotes}
+              onChangeText={setSupplierNotes}
+              placeholder="Supplier notes"
+              placeholderTextColor={theme.muted}
+              style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
+              multiline
+            />
             <TextInput
               value={trackingNumber}
               onChangeText={setTrackingNumber}
@@ -106,7 +149,7 @@ export default function AdminOrdersScreen() {
               style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
             />
             <View style={styles.optionRow}>
-              {["manual_review", "dispatched", "manual_action_required"].map((value) => (
+              {["manual_review", "supplier_order_placed", "dispatched", "manual_action_required"].map((value) => (
                 <Pressable
                   key={value}
                   onPress={() => setSupplierDispatchStatus(value)}
@@ -199,5 +242,8 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#FFFFFF",
     fontWeight: "700"
+  },
+  linkButton: {
+    alignItems: "flex-start"
   }
 });

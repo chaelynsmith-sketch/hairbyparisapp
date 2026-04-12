@@ -12,12 +12,15 @@ import { useSessionStore } from "@/store/session-store";
 export default function LoginScreen() {
   const theme = useTheme();
   const setSession = useSessionStore((state) => state.setSession);
-  const [identifier, setIdentifier] = useState("");
+  const rememberedIdentifier = useSessionStore((state) => state.rememberedIdentifier);
+  const setRememberedIdentifier = useSessionStore((state) => state.setRememberedIdentifier);
+  const [identifier, setIdentifier] = useState(rememberedIdentifier);
   const [password, setPassword] = useState("");
 
   const mutation = useMutation({
     mutationFn: () => login(identifier, password),
     onSuccess: (data) => {
+      setRememberedIdentifier(identifier.trim());
       setSession(data);
       router.replace("/(tabs)");
     }

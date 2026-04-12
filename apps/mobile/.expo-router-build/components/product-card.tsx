@@ -1,4 +1,5 @@
 import { Feather } from "@expo/vector-icons";
+import { useState } from "react";
 import { Image, Pressable, StyleSheet, Text, View } from "react-native";
 
 import { useTheme } from "@/hooks/use-theme";
@@ -13,14 +14,28 @@ type ProductCardProps = {
 
 export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }: ProductCardProps) {
   const theme = useTheme();
-  const image = product.media?.[0]?.url || "https://images.unsplash.com/photo-1522337660859-02fbefca4702";
-  const price = product.displayPrice ?? product.pricing.saleAmount ?? product.pricing.amount;
-  const compareAt = product.pricing.saleAmount ? product.pricing.amount : null;
+  const coverImage =
+    product.media?.find((item) => item.type === "image" && item.url)?.url ||
+    product.variants?.flatMap((variant) => variant.media || []).find((item) => item.type === "image" && item.url)?.url;
+  const [imageFailed, setImageFailed] = useState(false);
+  const showImage = Boolean(coverImage && !imageFailed);
+  const variantPrices = product.variants?.map((variant) => variant.salePrice || variant.price).filter((price): price is number => Boolean(price)) || [];
+  const price = variantPrices.length
+    ? Math.min(...variantPrices)
+    : product.displayPrice ?? product.pricing.saleAmount ?? product.pricing.amount;
+  const compareAt = !variantPrices.length && product.pricing.saleAmount ? product.pricing.amount : null;
 
   return (
     <Pressable onPress={onPress} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
       <View>
-        <Image source={{ uri: image }} style={styles.image} />
+        {showImage ? (
+          <Image source={{ uri: coverImage }} style={styles.image} onError={() => setImageFailed(true)} />
+        ) : (
+          <View style={[styles.imagePlaceholder, { backgroundColor: theme.canvas }]}>
+            <Feather name="image" size={28} color={theme.muted} />
+            <Text style={[styles.placeholderText, { color: theme.muted }]}>No product image yet</Text>
+          </View>
+        )}
         <View style={[styles.badge, { backgroundColor: theme.spotlight }]}>
           <Text style={[styles.badgeText, { color: theme.primary }]}>{product.category}</Text>
         </View>
@@ -38,7 +53,7 @@ export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }
         <View style={styles.footer}>
           <View>
             <Text style={[styles.price, { color: theme.primary }]}>
-              {product.displayCurrency} {price.toFixed(2)}
+              {variantPrices.length ? "From " : ""}{product.displayCurrency} {price.toFixed(2)}
             </Text>
             {compareAt ? (
               <Text style={[styles.compareAt, { color: theme.muted }]}>
@@ -69,6 +84,17 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 210
+  },
+  imagePlaceholder: {
+    width: "100%",
+    height: 210,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8
+  },
+  placeholderText: {
+    fontSize: 13,
+    fontWeight: "700"
   },
   badge: {
     position: "absolute",

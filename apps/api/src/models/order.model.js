@@ -3,9 +3,12 @@ const mongoose = require("mongoose");
 const orderItemSchema = new mongoose.Schema(
   {
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+    variantId: String,
+    variantLabel: String,
     supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     name: String,
     sku: String,
+    supplierCost: Number,
     supplierPlatform: String,
     supplierSourceUrl: String,
     supplierReference: String,

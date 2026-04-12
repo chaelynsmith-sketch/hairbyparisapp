@@ -6,7 +6,7 @@ export async function fetchAdminDashboard() {
 }
 
 export async function fetchAdminProducts() {
-  const { data } = await api.get("/products");
+  const { data } = await api.get("/admin/products");
   return data.products;
 }
 

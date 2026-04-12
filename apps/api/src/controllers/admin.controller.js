@@ -7,6 +7,10 @@ const { normalizeProductMedia } = require("../utils/media-url");
 function normalizeAdminProduct(product) {
   const value = product.toObject ? product.toObject() : { ...product };
   value.media = normalizeProductMedia(value.media || []);
+  value.variants = (value.variants || []).map((variant) => ({
+    ...variant,
+    media: normalizeProductMedia(variant.media || [])
+  }));
   return value;
 }
 

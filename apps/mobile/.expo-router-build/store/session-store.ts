@@ -17,6 +17,7 @@ type SessionState = {
   accessToken: string | null;
   refreshToken: string | null;
   user: AppUser | null;
+  rememberedIdentifier: string;
   storeKey: string;
   country: string;
   currency: string;
@@ -39,15 +40,16 @@ type SessionState = {
   hasHydrated: boolean;
   setSession: (payload: { accessToken: string; refreshToken: string; user: AppUser }) => void;
   clearSession: () => void;
+  setRememberedIdentifier: (identifier: string) => void;
   setRegion: (payload: { storeKey: string; country: string; currency: string; locale: string }) => void;
   setThemePreference: (themePreference: ThemeOption) => void;
   setWishlist: (wishlist: string[]) => void;
   toggleWishlistItem: (productId: string) => void;
   setCartCount: (count: number) => void;
   setGuestCart: (items: CartItem[]) => void;
-  addGuestCartItem: (product: StorefrontProduct, quantity?: number) => void;
-  updateGuestCartItemQuantity: (productId: string, quantity: number) => void;
-  removeGuestCartItem: (productId: string) => void;
+  addGuestCartItem: (product: StorefrontProduct, quantity?: number, variantId?: string) => void;
+  updateGuestCartItemQuantity: (itemKey: string, quantity: number) => void;
+  removeGuestCartItem: (itemKey: string) => void;
   setSavedShippingAddress: (address: SessionState["savedShippingAddress"]) => void;
   setRecommendations: (items: StorefrontProduct[]) => void;
   markHydrated: (value: boolean) => void;
@@ -59,6 +61,7 @@ export const useSessionStore = create<SessionState>()(
       accessToken: null,
       refreshToken: null,
       user: null,
+      rememberedIdentifier: "",
       storeKey: "hair-by-paris-global",
       country: defaultCountry,
       currency: "ZAR",
@@ -92,6 +95,7 @@ export const useSessionStore = create<SessionState>()(
           themePreference: "black_white",
           savedShippingAddress: null
         }),
+      setRememberedIdentifier: (rememberedIdentifier) => set({ rememberedIdentifier }),
       setRegion: ({ storeKey, country, currency, locale }) =>
         set({
           storeKey,
@@ -113,12 +117,14 @@ export const useSessionStore = create<SessionState>()(
           guestCart,
           cartCount: guestCart.reduce((sum, item) => sum + item.quantity, 0)
         }),
-      addGuestCartItem: (product, quantity = 1) =>
+      addGuestCartItem: (product, quantity = 1, variantId) =>
         set((state) => {
-          const existingItem = state.guestCart.find((item) => item.productId._id === product._id);
+          const variant = product.variants?.find((item) => item._id === variantId);
+          const cartKey = `${product._id}:${variant?._id || ""}`;
+          const existingItem = state.guestCart.find((item) => `${item.productId._id}:${item.variantId || ""}` === cartKey);
           const guestCart = existingItem
             ? state.guestCart.map((item) =>
-                item.productId._id === product._id
+                `${item.productId._id}:${item.variantId || ""}` === cartKey
                   ? { ...item, quantity: item.quantity + quantity }
                   : item
               )
@@ -126,8 +132,11 @@ export const useSessionStore = create<SessionState>()(
                 ...state.guestCart,
                 {
                   productId: product,
+                  variantId: variant?._id,
+                  variantLabel: variant?.label,
+                  sku: variant?.sku || product.inventory.sku,
                   quantity,
-                  unitPrice: product.pricing.saleAmount || product.pricing.amount,
+                  unitPrice: variant?.salePrice || variant?.price || product.pricing.saleAmount || product.pricing.amount,
                   currency: product.displayCurrency || product.pricing.baseCurrency
                 }
               ];
@@ -137,10 +146,10 @@ export const useSessionStore = create<SessionState>()(
             cartCount: guestCart.reduce((sum, item) => sum + item.quantity, 0)
           };
         }),
-      updateGuestCartItemQuantity: (productId, quantity) =>
+      updateGuestCartItemQuantity: (itemKey, quantity) =>
         set((state) => {
           const guestCart = state.guestCart.map((item) =>
-            item.productId._id === productId ? { ...item, quantity } : item
+            (item._id || `${item.productId._id}:${item.variantId || ""}`) === itemKey ? { ...item, quantity } : item
           );
 
           return {
@@ -148,9 +157,9 @@ export const useSessionStore = create<SessionState>()(
             cartCount: guestCart.reduce((sum, item) => sum + item.quantity, 0)
           };
         }),
-      removeGuestCartItem: (productId) =>
+      removeGuestCartItem: (itemKey) =>
         set((state) => {
-          const guestCart = state.guestCart.filter((item) => item.productId._id !== productId);
+          const guestCart = state.guestCart.filter((item) => (item._id || `${item.productId._id}:${item.variantId || ""}`) !== itemKey);
 
           return {
             guestCart,
@@ -168,6 +177,7 @@ export const useSessionStore = create<SessionState>()(
         accessToken: state.accessToken,
         refreshToken: state.refreshToken,
         user: state.user,
+        rememberedIdentifier: state.rememberedIdentifier,
         storeKey: state.storeKey,
         country: state.country,
         currency: state.currency,

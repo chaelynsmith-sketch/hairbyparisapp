@@ -27,6 +27,8 @@ export default function CartScreen() {
 
   const items = user ? cart?.items || [] : guestCart;
   const subtotal = items.reduce((sum: number, item: any) => sum + item.unitPrice * item.quantity, 0);
+  const shippingFee = items.length ? (subtotal >= 1500 ? 0 : 135) : 0;
+  const estimatedTotal = subtotal + shippingFee;
   const totalItemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
 
   const refreshCartState = (nextCart: any) => {
@@ -69,9 +71,12 @@ export default function CartScreen() {
       ) : (
         <>
           <View style={styles.list}>
-            {items.map((item: any) => (
-              <View key={item.productId?._id || item._id} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
+            {items.map((item: any) => {
+              const itemKey = item._id || `${item.productId?._id}:${item.variantId || ""}`;
+              return (
+              <View key={itemKey} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
                 <Text style={[styles.productName, { color: theme.text }]}>{item.productId?.name || "Cart item"}</Text>
+                {item.variantLabel ? <Text style={{ color: theme.muted }}>Option: {item.variantLabel}</Text> : null}
                 <Text style={{ color: theme.muted }}>
                   {item.currency} {item.unitPrice.toFixed(2)} each
                 </Text>
@@ -84,14 +89,14 @@ export default function CartScreen() {
                       onPress={() =>
                         user
                           ? item.quantity > 1
-                            ? updateQuantityMutation.mutate({
-                                productId: item.productId._id,
+                          ? updateQuantityMutation.mutate({
+                                productId: itemKey,
                                 quantity: item.quantity - 1
                               })
-                            : removeItemMutation.mutate(item.productId._id)
+                            : removeItemMutation.mutate(itemKey)
                           : item.quantity > 1
-                            ? updateGuestCartItemQuantity(item.productId._id, item.quantity - 1)
-                            : removeGuestCartItem(item.productId._id)
+                            ? updateGuestCartItemQuantity(itemKey, item.quantity - 1)
+                            : removeGuestCartItem(itemKey)
                       }
                       style={[styles.quantityButton, { borderColor: theme.border, backgroundColor: theme.canvas }]}
                     >
@@ -102,10 +107,10 @@ export default function CartScreen() {
                       onPress={() =>
                         user
                           ? updateQuantityMutation.mutate({
-                              productId: item.productId._id,
+                              productId: itemKey,
                               quantity: item.quantity + 1
                             })
-                          : updateGuestCartItemQuantity(item.productId._id, item.quantity + 1)
+                          : updateGuestCartItemQuantity(itemKey, item.quantity + 1)
                       }
                       style={[styles.quantityButton, { borderColor: theme.border, backgroundColor: theme.canvas }]}
                     >
@@ -115,7 +120,7 @@ export default function CartScreen() {
                   <View style={styles.actionColumn}>
                     <Pressable
                       onPress={() =>
-                        user ? removeItemMutation.mutate(item.productId._id) : removeGuestCartItem(item.productId._id)
+                        user ? removeItemMutation.mutate(itemKey) : removeGuestCartItem(itemKey)
                       }
                       style={[styles.inlineAction, { borderColor: theme.border }]}
                     >
@@ -127,9 +132,9 @@ export default function CartScreen() {
                           toggleWishlistItem(item.productId._id);
                         }
                         if (user) {
-                          removeItemMutation.mutate(item.productId._id);
+                          removeItemMutation.mutate(itemKey);
                         } else {
-                          removeGuestCartItem(item.productId._id);
+                          removeGuestCartItem(itemKey);
                         }
                       }}
                       style={[styles.inlineAction, { borderColor: theme.border }]}
@@ -139,11 +144,25 @@ export default function CartScreen() {
                   </View>
                 </View>
               </View>
-            ))}
+            );
+            })}
           </View>
           <View style={[styles.summaryCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text style={{ color: theme.text }}>Subtotal</Text>
-            <Text style={[styles.subtotal, { color: theme.primary }]}>{items[0]?.currency || "ZAR"} {subtotal.toFixed(2)}</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>
+              {items[0]?.currency || "ZAR"} {subtotal.toFixed(2)}
+            </Text>
+            <Text style={{ color: theme.text }}>Estimated shipping</Text>
+            <Text style={[styles.summaryValue, { color: theme.text }]}>
+              {items[0]?.currency || "ZAR"} {shippingFee.toFixed(2)}
+            </Text>
+            <Text style={{ color: theme.text }}>Estimated total</Text>
+            <Text style={[styles.subtotal, { color: theme.primary }]}>
+              {items[0]?.currency || "ZAR"} {estimatedTotal.toFixed(2)}
+            </Text>
+            <Text style={{ color: theme.muted }}>
+              Final tax and any voucher discount are confirmed at checkout.
+            </Text>
           </View>
           <Pressable
             onPress={() => router.push(user ? "/orders/checkout" : "/auth/login")}
@@ -223,6 +242,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 18,
     gap: 8
+  },
+  summaryValue: {
+    fontSize: 16,
+    fontWeight: "600"
   },
   subtotal: {
     fontSize: 20,

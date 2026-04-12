@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const { Cart } = require("../models/cart.model");
 const { Product } = require("../models/product.model");
 const { Order } = require("../models/order.model");
@@ -11,17 +12,22 @@ function createOrderNumber() {
   return `HBP-${Date.now().toString().slice(-8)}`;
 }
 
+function toObjectId(value) {
+  return mongoose.Types.ObjectId.isValid(value) ? new mongoose.Types.ObjectId(value) : value;
+}
+
 function buildCartFingerprint(items = [], couponCode = "") {
   return JSON.stringify({
     couponCode: couponCode || "",
     items: items
       .map((item) => ({
         productId: item.productId.id || item.productId._id || item.productId,
+        variantId: item.variantId || "",
         quantity: item.quantity,
         unitPrice: item.unitPrice,
         currency: item.currency
       }))
-      .sort((left, right) => String(left.productId).localeCompare(String(right.productId)))
+      .sort((left, right) => `${left.productId}:${left.variantId}`.localeCompare(`${right.productId}:${right.variantId}`))
   });
 }
 
@@ -131,9 +137,12 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
     orderNumber: createOrderNumber(),
     items: items.map((item) => ({
       productId: item.productId.id,
+      variantId: item.variantId,
+      variantLabel: item.variantLabel,
       supplierId: item.productId.supplierId,
-      name: item.productId.name,
-      sku: item.productId.inventory.sku,
+      name: item.variantLabel ? `${item.productId.name} - ${item.variantLabel}` : item.productId.name,
+      sku: item.sku || item.productId.inventory.sku,
+      supplierCost: item.productId.variants?.find((variant) => variant.id === item.variantId || variant._id?.toString() === item.variantId)?.supplierCost || 0,
       supplierPlatform: item.productId.sourcing?.platform,
       supplierSourceUrl: item.productId.sourcing?.sourceUrl,
       supplierReference: item.productId.sourcing?.supplierReference,
@@ -165,12 +174,22 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
   if (items.length) {
     // Inventory is decremented at order creation time to avoid overselling during manual supplier review.
     await Product.bulkWrite(
-      items.map((item) => ({
-        updateOne: {
-          filter: { _id: item.productId.id },
-          update: { $inc: { "inventory.quantity": -item.quantity } }
-        }
-      }))
+      items.map((item) =>
+        item.variantId
+          ? {
+              updateOne: {
+                filter: { _id: item.productId.id },
+                update: { $inc: { "variants.$[variant].quantity": -item.quantity, "inventory.quantity": -item.quantity } },
+                arrayFilters: [{ "variant._id": toObjectId(item.variantId) }]
+              }
+            }
+          : {
+              updateOne: {
+                filter: { _id: item.productId.id },
+                update: { $inc: { "inventory.quantity": -item.quantity } }
+              }
+            }
+      )
     );
   }
 
