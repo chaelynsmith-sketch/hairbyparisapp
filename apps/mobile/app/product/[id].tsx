@@ -86,9 +86,7 @@ export default function ProductDetailsScreen() {
 
   const product = data?.product;
   const isWishlisted = wishlist.includes(id);
-  const galleryImages = product?.media?.length
-    ? product.media
-    : [{ url: "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9", type: "image" }];
+  const galleryImages: { url: string; type: string }[] = product?.media || [];
 
   async function pickReviewImage() {
     if (Platform.OS === "web") {
@@ -145,7 +143,13 @@ export default function ProductDetailsScreen() {
           onActionPress={() => router.replace("/(tabs)/shop")}
         />
         <View style={styles.heroWrap}>
-          {galleryImages[selectedImageIndex]?.type === "video" ? (
+          {!galleryImages.length ? (
+            <View style={[styles.emptyImageHero, { backgroundColor: theme.card, borderColor: theme.border }]}>
+              <Feather name="image" size={36} color={theme.muted} />
+              <Text style={{ color: theme.text, fontWeight: "700" }}>No product image yet</Text>
+              <Text style={{ color: theme.muted }}>Add product media from the admin catalog manager.</Text>
+            </View>
+          ) : galleryImages[selectedImageIndex]?.type === "video" ? (
             Platform.OS === "web" ? (
               <video
                 src={galleryImages[selectedImageIndex]?.url}
@@ -301,6 +305,16 @@ const styles = StyleSheet.create({
     objectFit: "cover"
   },
   videoFallback: {
+    width: "100%",
+    height: 360,
+    borderRadius: 28,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 20
+  },
+  emptyImageHero: {
     width: "100%",
     height: 360,
     borderRadius: 28,

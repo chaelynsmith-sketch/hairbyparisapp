@@ -2,6 +2,13 @@ const { Order } = require("../models/order.model");
 const { Product } = require("../models/product.model");
 const { User } = require("../models/user.model");
 const { Supplier } = require("../models/supplier.model");
+const { normalizeProductMedia } = require("../utils/media-url");
+
+function normalizeAdminProduct(product) {
+  const value = product.toObject ? product.toObject() : { ...product };
+  value.media = normalizeProductMedia(value.media || []);
+  return value;
+}
 
 async function dashboardSummary(req, res) {
   const [sales, totalOrders, users, products, suppliers, popularProducts] = await Promise.all([
@@ -36,7 +43,7 @@ async function dashboardSummary(req, res) {
 
 async function listAdminProducts(req, res) {
   const products = await Product.find({ storeId: req.storeId }).sort({ createdAt: -1 }).limit(100);
-  res.json({ products });
+  res.json({ products: products.map(normalizeAdminProduct) });
 }
 
 module.exports = { dashboardSummary, listAdminProducts };

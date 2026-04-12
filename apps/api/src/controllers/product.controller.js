@@ -2,10 +2,12 @@ const mongoose = require("mongoose");
 const { Product } = require("../models/product.model");
 const { Review } = require("../models/review.model");
 const { convertCurrency } = require("../services/currency.service");
+const { normalizeProductMedia } = require("../utils/media-url");
 
 function sanitizePublicProduct(product) {
   const value = product.toObject ? product.toObject() : { ...product };
   delete value.sourcing;
+  value.media = normalizeProductMedia(value.media || []);
   return value;
 }
 

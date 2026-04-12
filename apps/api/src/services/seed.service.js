@@ -10,13 +10,7 @@ const demoProducts = [
     description:
       "Soft premium body wave bundles with full volume, natural shine, and long-lasting styling flexibility.",
     tags: ["bundles", "body wave", "premium"],
-    media: [
-      {
-        type: "image",
-        url: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80",
-        alt: "Brazilian body wave bundles"
-      }
-    ],
+    media: [],
     pricing: {
       baseCurrency: "ZAR",
       amount: 1899,
@@ -47,13 +41,7 @@ const demoProducts = [
     description:
       "Pre-plucked HD lace wig with a sleek straight finish designed for a seamless melt and easy daily wear.",
     tags: ["wig", "lace", "straight"],
-    media: [
-      {
-        type: "image",
-        url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=1200&q=80",
-        alt: "HD lace straight wig"
-      }
-    ],
+    media: [],
     pricing: {
       baseCurrency: "ZAR",
       amount: 3299,
@@ -84,13 +72,7 @@ const demoProducts = [
     description:
       "Lightweight botanical oil blend for scalp comfort, braid maintenance, and moisture sealing without heavy buildup.",
     tags: ["oil", "scalp care", "growth"],
-    media: [
-      {
-        type: "image",
-        url: "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&w=1200&q=80",
-        alt: "Hair growth oil bottle"
-      }
-    ],
+    media: [],
     pricing: {
       baseCurrency: "ZAR",
       amount: 249
@@ -117,13 +99,7 @@ const demoProducts = [
     description:
       "Compact beauty tool for smoothing edges, touch-up styling, and finishing installs with controlled heat.",
     tags: ["tool", "styling", "ceramic"],
-    media: [
-      {
-        type: "image",
-        url: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=1200&q=80",
-        alt: "Ceramic edge styling tool"
-      }
-    ],
+    media: [],
     pricing: {
       baseCurrency: "ZAR",
       amount: 699
