@@ -1,5 +1,5 @@
 const express = require("express");
-const { listProducts, getProduct, createProduct, updateProduct } = require("../../controllers/product.controller");
+const { listProducts, getProduct, createProduct, updateProduct, deleteProduct } = require("../../controllers/product.controller");
 const { authenticate, requireRole } = require("../../middleware/auth.middleware");
 const { resolveStore } = require("../../middleware/store.middleware");
 const { validateRequest } = require("../../middleware/validate.middleware");
@@ -25,6 +25,13 @@ productRouter.put(
   resolveStore,
   requireRole("admin", "super_admin"),
   asyncHandler(updateProduct)
+);
+productRouter.delete(
+  "/:productId",
+  authenticate,
+  resolveStore,
+  requireRole("admin", "super_admin"),
+  asyncHandler(deleteProduct)
 );
 
 module.exports = { productRouter };

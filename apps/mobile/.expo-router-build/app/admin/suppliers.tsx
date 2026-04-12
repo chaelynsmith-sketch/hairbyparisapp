@@ -1,12 +1,12 @@
 import { router } from "expo-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { Alert, Platform, Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/hooks/use-theme";
-import { createSupplier, fetchSuppliers } from "@/services/admin-service";
+import { createSupplier, deleteSupplier, fetchSuppliers } from "@/services/admin-service";
 
 const emptyForm = {
   name: "",
@@ -16,6 +16,20 @@ const emptyForm = {
   payoutMethod: "manual_transfer",
   destinationLabel: ""
 };
+
+function confirmDestructiveAction(title: string, message: string, onConfirm: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`${title}\n\n${message}`)) {
+      onConfirm();
+    }
+    return;
+  }
+
+  Alert.alert(title, message, [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: onConfirm }
+  ]);
+}
 
 export default function AdminSuppliersScreen() {
   const theme = useTheme();
@@ -63,6 +77,19 @@ export default function AdminSuppliersScreen() {
     },
     onError: (error: any) => {
       setErrorMessage(error?.response?.data?.message || error?.message || "Unable to create supplier.");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (supplierId: string) => deleteSupplier(supplierId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      setStatusMessage("Supplier deleted and unlinked from products.");
+      setErrorMessage("");
+    },
+    onError: (error: any) => {
+      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to delete supplier.");
     }
   });
 
@@ -151,6 +178,18 @@ export default function AdminSuppliersScreen() {
             ) : null}
             {supplier.email ? <Text style={{ color: theme.muted }}>Email: {supplier.email}</Text> : null}
             {supplier.apiEndpoint ? <Text style={{ color: theme.muted }}>API: {supplier.apiEndpoint}</Text> : null}
+            <Pressable
+              onPress={() =>
+                confirmDestructiveAction(
+                  "Delete supplier?",
+                  "This removes the supplier and unlinks it from products. Existing order records will remain.",
+                  () => deleteMutation.mutate(supplier._id)
+                )
+              }
+              style={[styles.deleteButton, { opacity: deleteMutation.isPending ? 0.7 : 1 }]}
+            >
+              <Text style={styles.deleteButtonText}>Delete supplier</Text>
+            </Pressable>
           </View>
         ))}
       </View>
@@ -209,5 +248,17 @@ const styles = StyleSheet.create({
   errorText: {
     color: "#B3261E",
     fontWeight: "700"
+  },
+  deleteButton: {
+    borderWidth: 1,
+    borderColor: "#B3261E",
+    borderRadius: 14,
+    paddingVertical: 12,
+    alignItems: "center",
+    marginTop: 6
+  },
+  deleteButtonText: {
+    color: "#B3261E",
+    fontWeight: "800"
   }
 });

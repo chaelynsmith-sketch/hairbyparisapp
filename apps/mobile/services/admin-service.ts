@@ -20,6 +20,11 @@ export async function createSupplier(payload: Record<string, unknown>) {
   return data.supplier;
 }
 
+export async function deleteSupplier(supplierId: string) {
+  const { data } = await api.delete(`/suppliers/${supplierId}`);
+  return data;
+}
+
 export async function sendCampaignNotification(payload: Record<string, unknown>) {
   const { data } = await api.post("/notifications", payload);
   return data;

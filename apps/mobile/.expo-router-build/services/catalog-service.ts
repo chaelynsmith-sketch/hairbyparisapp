@@ -26,6 +26,11 @@ export async function updateProduct(productId: string, payload: Record<string, u
   return data.product;
 }
 
+export async function deleteProduct(productId: string) {
+  const { data } = await api.delete(`/products/${productId}`);
+  return data;
+}
+
 export async function fetchReviews(productId: string): Promise<Review[]> {
   const { data } = await api.get("/reviews", { params: { productId } });
   return data.reviews;

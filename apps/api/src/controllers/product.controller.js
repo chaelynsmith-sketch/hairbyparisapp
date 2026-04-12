@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const { Product } = require("../models/product.model");
 const { Review } = require("../models/review.model");
+const { Cart } = require("../models/cart.model");
 const { convertCurrency } = require("../services/currency.service");
 const { normalizeProductMedia } = require("../utils/media-url");
+const { ApiError } = require("../utils/api-error");
 
 function sanitizePublicProduct(product) {
   const value = product.toObject ? product.toObject() : { ...product };
@@ -91,4 +93,19 @@ async function updateProduct(req, res) {
   res.json({ product });
 }
 
-module.exports = { listProducts, getProduct, createProduct, updateProduct };
+async function deleteProduct(req, res) {
+  const product = await Product.findOneAndDelete({ _id: req.params.productId, storeId: req.storeId });
+
+  if (!product) {
+    throw new ApiError(404, "Product not found");
+  }
+
+  await Cart.updateMany(
+    { storeId: req.storeId },
+    { $pull: { items: { productId: product._id } } }
+  );
+
+  res.json({ message: `${product.name} deleted successfully`, productId: product.id });
+}
+
+module.exports = { listProducts, getProduct, createProduct, updateProduct, deleteProduct };

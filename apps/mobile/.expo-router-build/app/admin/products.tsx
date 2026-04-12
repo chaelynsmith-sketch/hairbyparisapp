@@ -2,13 +2,13 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
-import { ScrollView, Pressable, StyleSheet, Text, TextInput, View, Image, Platform } from "react-native";
+import { Alert, ScrollView, Pressable, StyleSheet, Text, TextInput, View, Image, Platform } from "react-native";
 
 import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchAdminProducts, fetchSuppliers } from "@/services/admin-service";
-import { createProduct, updateProduct } from "@/services/catalog-service";
+import { createProduct, deleteProduct, updateProduct } from "@/services/catalog-service";
 import { uploadMedia } from "@/services/upload-service";
 
 const defaultCategories = ["Hair Products", "Hair Extensions", "Tools", "Wigs"];
@@ -50,6 +50,20 @@ function slugify(value: string) {
     .trim()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
+}
+
+function confirmDestructiveAction(title: string, message: string, onConfirm: () => void) {
+  if (Platform.OS === "web") {
+    if (window.confirm(`${title}\n\n${message}`)) {
+      onConfirm();
+    }
+    return;
+  }
+
+  Alert.alert(title, message, [
+    { text: "Cancel", style: "cancel" },
+    { text: "Delete", style: "destructive", onPress: onConfirm }
+  ]);
 }
 
 export default function AdminProductsScreen() {
@@ -187,6 +201,31 @@ export default function AdminProductsScreen() {
     },
     onError: (error: any) => {
       setErrorMessage(error?.response?.data?.message || error?.message || "Unable to remove product.");
+    }
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      setErrorMessage("");
+      setStatusMessage("");
+
+      if (!form._id) {
+        throw new Error("Select a product before deleting it.");
+      }
+
+      return deleteProduct(form._id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["product-categories"] });
+      setForm(emptyForm);
+      setPreviewMedia([]);
+      setErrorMessage("");
+      setStatusMessage("Product deleted permanently.");
+    },
+    onError: (error: any) => {
+      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to delete product.");
     }
   });
 
@@ -767,6 +806,7 @@ export default function AdminProductsScreen() {
         </View>
       </ScrollView>
       {isEditing ? (
+        <View style={styles.dangerZone}>
         <Pressable
           onPress={() => archiveMutation.mutate()}
           style={[
@@ -782,6 +822,28 @@ export default function AdminProductsScreen() {
             {archiveMutation.isPending ? "Removing..." : "Remove from storefront"}
           </Text>
         </Pressable>
+        <Pressable
+          onPress={() =>
+            confirmDestructiveAction(
+              "Delete product permanently?",
+              "This removes the product from the catalog and from active carts. Existing order records will remain.",
+              () => deleteMutation.mutate()
+            )
+          }
+          style={[
+            styles.removeButton,
+            {
+              borderColor: "#B3261E",
+              backgroundColor: "#B3261E",
+              opacity: deleteMutation.isPending ? 0.7 : 1
+            }
+          ]}
+        >
+          <Text style={styles.deleteButtonText}>
+            {deleteMutation.isPending ? "Deleting..." : "Delete product permanently"}
+          </Text>
+        </Pressable>
+        </View>
       ) : null}
     </Screen>
   );
@@ -850,8 +912,15 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: "center"
   },
+  dangerZone: {
+    gap: 10
+  },
   removeButtonText: {
     color: "#B3261E",
+    fontWeight: "700"
+  },
+  deleteButtonText: {
+    color: "#FFFFFF",
     fontWeight: "700"
   },
   removeMediaButton: {
