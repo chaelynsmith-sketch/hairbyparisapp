@@ -9,7 +9,7 @@ function signAccessToken(user) {
     process.env.JWT_ACCESS_SECRET,
     {
       subject: user.id,
-      expiresIn: process.env.JWT_ACCESS_TTL || "15m"
+      expiresIn: process.env.JWT_ACCESS_TTL || "7d"
     }
   );
 }
