@@ -13,7 +13,7 @@ const emptyForm = {
   mode: "manual",
   email: "",
   apiEndpoint: "",
-  payoutRatePercentage: "70",
+  fixedAmount: "",
   payoutMethod: "manual_transfer",
   destinationLabel: ""
 };
@@ -52,7 +52,7 @@ export default function AdminSuppliersScreen() {
         email: form.email || undefined,
         apiEndpoint: form.apiEndpoint || undefined,
         payoutConfig: {
-          payoutRatePercentage: Number(form.payoutRatePercentage || 70),
+          fixedAmount: Number(form.fixedAmount || 0),
           method: form.payoutMethod || "manual_transfer",
           destinationLabel: form.destinationLabel || undefined
         }
@@ -118,9 +118,9 @@ export default function AdminSuppliersScreen() {
           />
         ) : null}
         <TextInput
-          value={form.payoutRatePercentage}
-          onChangeText={(value) => setForm((current) => ({ ...current, payoutRatePercentage: value }))}
-          placeholder="Supplier payout percentage"
+          value={form.fixedAmount}
+          onChangeText={(value) => setForm((current) => ({ ...current, fixedAmount: value }))}
+          placeholder="Supplier fixed payout amount per item"
           placeholderTextColor={theme.muted}
           keyboardType="numeric"
           style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
@@ -154,7 +154,7 @@ export default function AdminSuppliersScreen() {
             <Text style={[styles.cardTitle, { color: theme.text }]}>{supplier.name}</Text>
             <Text style={{ color: theme.muted }}>Mode: {supplier.mode}</Text>
             <Text style={{ color: theme.muted }}>
-              Payout rate: {supplier.payoutConfig?.payoutRatePercentage ?? 70}%
+              Fixed payout: {supplier.pricingRules?.defaultCurrency || "ZAR"} {Number(supplier.payoutConfig?.fixedAmount || 0).toFixed(2)}
             </Text>
             <Text style={{ color: theme.muted }}>
               Payout method: {supplier.payoutConfig?.method || "manual_transfer"}

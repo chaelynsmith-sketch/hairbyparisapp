@@ -25,8 +25,11 @@ async function createPayoutsForOrder(order) {
     }
 
     const supplier = supplierMap.get(item.supplierId.toString());
+    const fixedAmount = Number(supplier?.payoutConfig?.fixedAmount || 0);
     const payoutRate = Number(supplier?.payoutConfig?.payoutRatePercentage ?? 70);
-    const supplierAmount = roundMoney(lineTotal * (payoutRate / 100));
+    const supplierAmount = fixedAmount > 0
+      ? roundMoney(Math.min(fixedAmount * item.quantity, lineTotal))
+      : roundMoney(lineTotal * (payoutRate / 100));
     supplierTotals.set(
       item.supplierId.toString(),
       roundMoney((supplierTotals.get(item.supplierId.toString()) || 0) + supplierAmount)

@@ -27,7 +27,7 @@ export default function CartScreen() {
 
   const items = user ? cart?.items || [] : guestCart;
   const subtotal = items.reduce((sum: number, item: any) => sum + item.unitPrice * item.quantity, 0);
-  const shippingFee = items.length ? (subtotal >= 1500 ? 0 : 120) : 0;
+  const shippingFee = items.length ? (subtotal >= 1500 ? 0 : 135) : 0;
   const estimatedTotal = subtotal + shippingFee;
   const totalItemCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
 

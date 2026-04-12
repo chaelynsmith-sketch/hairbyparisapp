@@ -49,7 +49,7 @@ async function buildCheckoutSummary({ user, store, couponCode }) {
   const cart = await Cart.findOne({ userId: user.id }).populate("items.productId");
   const items = cart?.items || [];
   const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
-  const shipping = subtotal >= (store.shippingConfig?.freeShippingThreshold || 1500) ? 0 : 120;
+  const shipping = subtotal >= (store.shippingConfig?.freeShippingThreshold || 1500) ? 0 : 135;
 
   let discountAmount = 0;
   if (couponCode) {
