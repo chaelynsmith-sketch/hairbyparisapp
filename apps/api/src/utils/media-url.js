@@ -33,6 +33,10 @@ function normalizeMediaUrl(url) {
     return url;
   }
 
+  if (url.startsWith("/uploads/")) {
+    return `${publicOrigin}${url}`;
+  }
+
   return url.replace(/^https?:\/\/(?:localhost|127\.0\.0\.1):\d+\/uploads\//i, `${publicOrigin}/uploads/`);
 }
 
