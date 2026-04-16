@@ -8,7 +8,7 @@ export function Screen({ children }: PropsWithChildren) {
   const theme = useTheme();
 
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={[styles.safeArea, { backgroundColor: theme.background }]}>
+    <SafeAreaView edges={["top", "left", "right", "bottom"]} style={[styles.safeArea, { backgroundColor: theme.background }]}>
       <View style={[styles.glowTop, { backgroundColor: theme.glowTop }]} />
       <View style={[styles.glowSide, { backgroundColor: theme.glowSide }]} />
       <View style={[styles.glowBottom, { backgroundColor: theme.glowBottom }]} />
@@ -25,7 +25,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
-    paddingBottom: 40,
+    paddingBottom: 132,
     gap: 20
   },
   inner: {
