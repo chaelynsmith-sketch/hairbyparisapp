@@ -11,6 +11,8 @@ const { paymentWebhookRouter } = require("./routes/modules/payment.routes");
 const { apiRouter } = require("./routes");
 const { notFoundHandler, errorHandler } = require("./middleware/error.middleware");
 const { requestContext } = require("./middleware/request.middleware");
+const { asyncHandler } = require("./utils/async-handler");
+const { serveUploadAsset } = require("./controllers/upload-asset.controller");
 
 function createApp() {
   const app = express();
@@ -50,6 +52,7 @@ function createApp() {
     })
   );
   app.use(compression());
+  app.get(/^\/uploads\/(.+)$/, asyncHandler(serveUploadAsset));
   app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
   app.use("/api/v1/payments/webhooks", paymentWebhookRouter);
   app.use(express.json({ limit: "2mb" }));

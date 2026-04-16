@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const { getPublicApiOrigin } = require("../utils/media-url");
+const { UploadAsset } = require("../models/upload-asset.model");
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION,
@@ -20,8 +21,20 @@ async function uploadToS3({ key, body, contentType }) {
     const targetPath = path.join(uploadsRoot, key);
     const publicOrigin = getPublicApiOrigin();
 
-    await fs.mkdir(path.dirname(targetPath), { recursive: true });
-    await fs.writeFile(targetPath, body);
+    if (process.env.NODE_ENV === "production") {
+      await UploadAsset.findOneAndUpdate(
+        { key },
+        {
+          key,
+          contentType,
+          data: body
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+    } else {
+      await fs.mkdir(path.dirname(targetPath), { recursive: true });
+      await fs.writeFile(targetPath, body);
+    }
 
     return {
       key,
