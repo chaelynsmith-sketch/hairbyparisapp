@@ -27,8 +27,7 @@ export default function AdminDashboardScreen() {
           ["Revenue", data?.metrics?.revenue ?? 0],
           ["Orders", data?.metrics?.totalOrders ?? 0],
           ["Users", data?.metrics?.users ?? 0],
-          ["Products", data?.metrics?.products ?? 0],
-          ["Suppliers", data?.metrics?.suppliers ?? 0]
+          ["Products", data?.metrics?.products ?? 0]
         ].map(([label, value]) => (
           <View key={label} style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
             <Text style={{ color: theme.muted }}>{label}</Text>
@@ -51,12 +50,6 @@ export default function AdminDashboardScreen() {
       <Pressable onPress={() => router.push("/admin/orders")} style={[styles.manageButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
         <Text style={[styles.manageButtonText, { color: theme.text }]}>Manage orders</Text>
       </Pressable>
-      <Pressable onPress={() => router.push("/admin/suppliers")} style={[styles.manageButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-        <Text style={[styles.manageButtonText, { color: theme.text }]}>Manage suppliers</Text>
-      </Pressable>
-      <Pressable onPress={() => router.push("/admin/payouts")} style={[styles.manageButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
-        <Text style={[styles.manageButtonText, { color: theme.text }]}>Manage payouts</Text>
-      </Pressable>
       <Pressable onPress={() => router.push("/admin/notifications")} style={[styles.manageButton, { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1 }]}>
         <Text style={[styles.manageButtonText, { color: theme.text }]}>Send notifications</Text>
       </Pressable>
@@ -73,7 +66,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 2,
     padding: 18
   },
   metricValue: {
@@ -95,7 +88,7 @@ const styles = StyleSheet.create({
   },
   manageButton: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   manageButtonText: {

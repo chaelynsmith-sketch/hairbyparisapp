@@ -265,10 +265,18 @@ export default function ProductDetailsScreen() {
         <View style={styles.actionRow}>
           <Pressable
             onPress={() => toggleWishlistItem(id)}
-            style={[styles.secondaryAction, { borderColor: theme.border, backgroundColor: theme.card }]}
+            style={[
+              styles.secondaryAction,
+              {
+                borderColor: isWishlisted ? theme.primary : theme.border,
+                backgroundColor: theme.card
+              }
+            ]}
           >
             <Feather name="heart" size={18} color={isWishlisted ? theme.primary : theme.text} />
-            <Text style={{ color: theme.text, fontWeight: "700" }}>{isWishlisted ? "Saved" : "Save"}</Text>
+            <Text style={{ color: theme.text, fontWeight: "700" }}>
+              {isWishlisted ? "Saved" : "Save"}
+            </Text>
           </Pressable>
           <Pressable
             onPress={() => {
@@ -332,18 +340,18 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 360,
-    borderRadius: 28
+    borderRadius: 2
   },
   videoHero: {
     width: "100%",
     height: 360,
-    borderRadius: 28,
+    borderRadius: 2,
     objectFit: "cover"
   },
   videoFallback: {
     width: "100%",
     height: 360,
-    borderRadius: 28,
+    borderRadius: 2,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -353,7 +361,7 @@ const styles = StyleSheet.create({
   emptyImageHero: {
     width: "100%",
     height: 360,
-    borderRadius: 28,
+    borderRadius: 2,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -366,7 +374,7 @@ const styles = StyleSheet.create({
   },
   galleryThumbWrap: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 4
   },
   galleryThumb: {
@@ -385,7 +393,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     bottom: 16,
-    borderRadius: 999,
+    borderRadius: 2,
     paddingHorizontal: 12,
     paddingVertical: 8
   },
@@ -397,7 +405,7 @@ const styles = StyleSheet.create({
   },
   contentCard: {
     borderWidth: 1,
-    borderRadius: 26,
+    borderRadius: 2,
     padding: 20,
     gap: 18
   },
@@ -418,7 +426,7 @@ const styles = StyleSheet.create({
   },
   variantPill: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 3
@@ -437,7 +445,7 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 14,
     gap: 6
   },
@@ -457,7 +465,7 @@ const styles = StyleSheet.create({
   secondaryAction: {
     minWidth: 116,
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 2,
     paddingHorizontal: 16,
     paddingVertical: 18,
     alignItems: "center",
@@ -467,7 +475,7 @@ const styles = StyleSheet.create({
   button: {
     flex: 1,
     paddingVertical: 18,
-    borderRadius: 20,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {
@@ -477,7 +485,7 @@ const styles = StyleSheet.create({
   },
   reviewSection: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 2,
     padding: 18,
     gap: 12
   },
@@ -504,7 +512,7 @@ const styles = StyleSheet.create({
   reviewPreview: {
     width: 120,
     height: 120,
-    borderRadius: 18
+    borderRadius: 2
   },
   feedbackText: {
     fontSize: 14,

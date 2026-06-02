@@ -9,20 +9,6 @@ const {
 
 function sanitizeCustomerOrder(order) {
   const value = order.toObject ? order.toObject() : { ...order };
-  value.items = (value.items || []).map((item) => {
-    const nextItem = { ...item };
-    delete nextItem.supplierPlatform;
-    delete nextItem.supplierSourceUrl;
-    delete nextItem.supplierReference;
-    return nextItem;
-  });
-
-  if (value.fulfillment) {
-    delete value.fulfillment.supplierOrderPlacedAt;
-    delete value.fulfillment.supplierOrderReference;
-    delete value.fulfillment.supplierNotes;
-  }
-
   return value;
 }
 
@@ -39,7 +25,7 @@ async function createOrder(req, res) {
   assertPaymentProviderAllowed(req.store, req.body.paymentProvider);
   assertPaymentProviderConfigured(req.body.paymentProvider);
 
-  const { order, supplierDispatch, duplicateAttempt } = await placeOrder({
+  const { order, duplicateAttempt } = await placeOrder({
     user: req.user,
     store: req.store,
     shippingAddress: req.body.shippingAddress,
@@ -57,11 +43,14 @@ async function createOrder(req, res) {
       orderId: order.id,
       storeId: req.storeId,
       userId: req.user.id,
+      customerEmail: req.user.email,
+      customerFirstName: req.user.firstName,
+      customerLastName: req.user.lastName,
       paymentMethodType: req.body.paymentMethodType || req.body.paymentProvider
     }
   });
 
-  res.status(201).json({ order, supplierDispatch, paymentIntent, duplicateAttempt });
+  res.status(201).json({ order, paymentIntent, duplicateAttempt });
 }
 
 async function listOrders(req, res) {
@@ -104,22 +93,6 @@ async function adminUpdateOrder(req, res) {
     throw new ApiError(404, "Order not found");
   }
 
-  if (req.body.supplierDispatchStatus) {
-    order.fulfillment.supplierDispatchStatus = req.body.supplierDispatchStatus;
-  }
-
-  if (typeof req.body.supplierOrderReference === "string") {
-    order.fulfillment.supplierOrderReference = req.body.supplierOrderReference;
-  }
-
-  if (typeof req.body.supplierNotes === "string") {
-    order.fulfillment.supplierNotes = req.body.supplierNotes;
-  }
-
-  if (req.body.supplierDispatchStatus === "supplier_order_placed") {
-    order.fulfillment.supplierOrderPlacedAt = new Date();
-  }
-
   if (typeof req.body.trackingNumber === "string") {
     order.fulfillment.trackingNumber = req.body.trackingNumber;
   }
@@ -134,7 +107,7 @@ async function adminUpdateOrder(req, res) {
 
   order.trackingEvents.push({
     status: req.body.status || order.status,
-    message: "Admin updated dispatch or tracking details."
+    message: "Hair By Paris updated your order status."
   });
 
   await order.save();

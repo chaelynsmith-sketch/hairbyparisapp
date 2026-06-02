@@ -5,6 +5,16 @@ export async function login(identifier: string, password: string) {
   return data;
 }
 
+export async function requestLoginOtp(payload: { identifier: string; channel: "email" | "phone" }) {
+  const { data } = await api.post("/auth/login/request-otp", payload);
+  return data;
+}
+
+export async function verifyLoginOtp(payload: { identifier: string; otp: string }) {
+  const { data } = await api.post("/auth/login/verify-otp", payload);
+  return data;
+}
+
 export async function register(payload: {
   username: string;
   email?: string;
@@ -18,6 +28,16 @@ export async function register(payload: {
   preferredLanguage: string;
 }) {
   const { data } = await api.post("/auth/register", payload);
+  return data;
+}
+
+export async function verifyRegistration(payload: { userId: string; emailOtp: string; phoneOtp: string }) {
+  const { data } = await api.post("/auth/register/verify", payload);
+  return data;
+}
+
+export async function resendRegistrationOtp(userId: string) {
+  const { data } = await api.post("/auth/register/resend-otp", { userId });
   return data;
 }
 

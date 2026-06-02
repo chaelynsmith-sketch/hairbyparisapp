@@ -64,7 +64,7 @@ export default function OrderTrackingScreen() {
     mutationFn: (status: "paid" | "failed" | "refunded") =>
       simulatePaymentUpdate({
         orderId: id,
-        provider: order?.payment?.provider || "stripe",
+        provider: "payfast",
         status
       }),
     onSuccess: () => {
@@ -101,9 +101,6 @@ export default function OrderTrackingScreen() {
         <Text style={{ color: theme.muted }}>Status: {formatStatus(order?.status)}</Text>
         <Text style={{ color: theme.muted }}>
           Guarantee: {formatStatus(order?.fulfillment?.guaranteeStatus)}
-        </Text>
-        <Text style={{ color: theme.muted }}>
-          Supplier dispatch: {formatStatus(order?.fulfillment?.supplierDispatchStatus)}
         </Text>
         <Text style={{ color: theme.muted }}>
           Payment: {formatStatus(order?.payment?.provider)} | {formatStatus(order?.payment?.status)}
@@ -181,7 +178,7 @@ export default function OrderTrackingScreen() {
         <View style={[styles.card, { backgroundColor: theme.card, borderColor: theme.border }]}>
           <Text style={[styles.sectionTitle, { color: theme.text }]}>Payment test controls</Text>
           <Text style={{ color: theme.muted }}>
-            Development only. Simulate a provider webhook to verify paid, failed, and refunded order handling.
+            Development only. Simulate a PayFast webhook to verify paid, failed, and refunded order handling.
           </Text>
           <View style={styles.actions}>
             {[
@@ -214,7 +211,7 @@ export default function OrderTrackingScreen() {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: 2,
     padding: 18,
     gap: 8
   },

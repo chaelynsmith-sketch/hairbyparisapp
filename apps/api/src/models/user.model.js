@@ -51,13 +51,18 @@ const userSchema = new mongoose.Schema(
     ],
     recoveryOtps: [
       {
-        purpose: { type: String, enum: ["password_reset", "username_recovery"] },
+        purpose: { type: String, enum: ["password_reset", "username_recovery", "email_verification", "phone_verification", "login"] },
         codeHash: String,
         destination: String,
         expiresAt: Date,
         createdAt: { type: Date, default: Date.now }
       }
     ],
+    verification: {
+      emailVerified: { type: Boolean, default: false },
+      phoneVerified: { type: Boolean, default: false },
+      activatedAt: Date
+    },
     preferences: {
       hairGoals: [String],
       preferredCategories: [String],

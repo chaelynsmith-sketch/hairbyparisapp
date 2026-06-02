@@ -1,10 +1,7 @@
 const express = require("express");
 const {
   listPaymentMethods,
-  stripeWebhook,
-  paypalWebhook,
   payfastWebhook,
-  ozowWebhook,
   simulatePaymentWebhook
 } = require("../../controllers/payment.controller");
 const { authenticate, requireRole } = require("../../middleware/auth.middleware");
@@ -23,15 +20,12 @@ paymentRouter.post(
   requireRole("admin", "super_admin"),
   [
     body("orderId").trim().notEmpty(),
-    body("provider").trim().isIn(["stripe", "paypal", "payfast", "ozow"]),
+    body("provider").optional().trim().isIn(["payfast"]),
     body("status").trim().isIn(["paid", "failed", "refunded"])
   ],
   validateRequest,
   asyncHandler(simulatePaymentWebhook)
 );
-paymentWebhookRouter.post("/stripe", express.raw({ type: "application/json" }), asyncHandler(stripeWebhook));
-paymentWebhookRouter.post("/paypal", express.json({ limit: "1mb" }), asyncHandler(paypalWebhook));
 paymentWebhookRouter.post("/payfast", express.urlencoded({ extended: false }), asyncHandler(payfastWebhook));
-paymentWebhookRouter.post("/ozow", express.urlencoded({ extended: false }), asyncHandler(ozowWebhook));
 
 module.exports = { paymentRouter, paymentWebhookRouter };

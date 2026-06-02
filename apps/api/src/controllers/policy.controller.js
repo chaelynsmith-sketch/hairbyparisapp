@@ -20,7 +20,7 @@ const defaultPolicies = {
       },
       {
         title: "Sharing",
-        body: "We may share the minimum information required with suppliers, delivery partners, and payment providers to fulfill your order and support customer service."
+        body: "We may share the minimum information required with delivery partners and PayFast to fulfill your retail order and support customer service."
       },
       {
         title: "Your choices",
@@ -39,7 +39,7 @@ const defaultPolicies = {
       },
       {
         title: "Orders",
-        body: "Orders are subject to availability, payment verification, supplier fulfillment, and shipping review. Hair By Paris may cancel or refuse orders affected by fraud, stock issues, or pricing errors."
+        body: "Orders are subject to availability, PayFast payment verification, and shipping review. Hair By Paris may cancel or refuse orders affected by fraud, stock issues, or pricing errors."
       },
       {
         title: "Accounts",

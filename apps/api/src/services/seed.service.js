@@ -4,7 +4,7 @@ const { logger } = require("../config/logger");
 
 const demoProducts = [
   {
-    category: "Hair Extensions",
+    category: "Bundles",
     name: "Brazilian Body Wave Bundle Set",
     slug: "brazilian-body-wave-bundle-set",
     description:
@@ -66,25 +66,28 @@ const demoProducts = [
     featured: true
   },
   {
-    category: "Hair Products",
-    name: "Nourish & Seal Growth Oil",
-    slug: "nourish-seal-growth-oil",
+    category: "Closures & Frontals",
+    name: "HD Lace Frontal",
+    slug: "hd-lace-frontal",
     description:
-      "Lightweight botanical oil blend for scalp comfort, braid maintenance, and moisture sealing without heavy buildup.",
-    tags: ["oil", "scalp care", "growth"],
+      "Soft HD lace frontal with natural density, clean hairline detail, and a luxury melt for salon installs.",
+    tags: ["frontal", "lace", "hd"],
     media: [],
     pricing: {
       baseCurrency: "ZAR",
-      amount: 249
+      amount: 1299
     },
     inventory: {
-      sku: "HBP-HP-003",
-      quantity: 60,
-      lowStockThreshold: 10
+      sku: "HBP-FR-003",
+      quantity: 16,
+      lowStockThreshold: 4
     },
     attributes: {
       brand: "Hair By Paris",
-      material: "Botanical Blend"
+      color: "Natural Black",
+      length: "20",
+      texture: "Straight",
+      material: "Human Hair"
     },
     recommendationSignals: {
       hairTypes: ["Dry scalp", "Protective Styles", "Natural"],
@@ -93,12 +96,12 @@ const demoProducts = [
     featured: false
   },
   {
-    category: "Tools",
-    name: "Ceramic Edge Styling Tool",
-    slug: "ceramic-edge-styling-tool",
+    category: "Hair Accessories",
+    name: "Champagne Silk Styling Kit",
+    slug: "champagne-silk-styling-kit",
     description:
       "Compact beauty tool for smoothing edges, touch-up styling, and finishing installs with controlled heat.",
-    tags: ["tool", "styling", "ceramic"],
+    tags: ["accessories", "styling", "silk"],
     media: [],
     pricing: {
       baseCurrency: "ZAR",
@@ -111,7 +114,8 @@ const demoProducts = [
     },
     attributes: {
       brand: "Hair By Paris",
-      material: "Ceramic"
+      color: "Champagne",
+      material: "Silk Blend"
     },
     recommendationSignals: {
       hairTypes: ["All"],
@@ -146,10 +150,7 @@ async function seedDevelopmentData() {
         expressDeliveryDays: { min: 1, max: 3 }
       },
       paymentMethods: {
-        stripe: true,
-        paypal: true,
-        payfast: true,
-        ozow: true
+        payfast: true
       }
     });
     logger.info({ storeId: store.id }, "Created development store seed");

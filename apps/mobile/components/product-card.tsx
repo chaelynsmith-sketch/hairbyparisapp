@@ -40,8 +40,21 @@ export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }
           <Text style={[styles.badgeText, { color: theme.primary }]}>{product.category}</Text>
         </View>
         {onToggleWishlist ? (
-          <Pressable onPress={onToggleWishlist} style={styles.wishlistButton}>
-            <Feather name="heart" size={18} color={isWishlisted ? theme.primary : theme.text} />
+          <Pressable
+            onPress={(event) => {
+              event.stopPropagation();
+              onToggleWishlist();
+            }}
+            hitSlop={10}
+            style={[
+              styles.wishlistButton,
+              {
+                backgroundColor: "rgba(255,255,255,0.94)",
+                borderColor: theme.border
+              }
+            ]}
+          >
+            <Feather name="heart" size={18} color={isWishlisted ? theme.primary : theme.muted} />
           </Pressable>
         ) : null}
       </View>
@@ -72,22 +85,22 @@ export function ProductCard({ product, onPress, onToggleWishlist, isWishlisted }
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
+    borderRadius: 2,
     borderWidth: 1,
     overflow: "hidden",
-    shadowColor: "#2D1B14",
-    shadowOffset: { width: 0, height: 14 },
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
-    elevation: 4
+    shadowColor: "#2C1A0E",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2
   },
   image: {
     width: "100%",
-    height: 210
+    height: 226
   },
   imagePlaceholder: {
     width: "100%",
-    height: 210,
+    height: 226,
     alignItems: "center",
     justifyContent: "center",
     gap: 8
@@ -102,32 +115,35 @@ const styles = StyleSheet.create({
     top: 14,
     paddingHorizontal: 10,
     paddingVertical: 7,
-    borderRadius: 999
+    borderRadius: 2
   },
   badgeText: {
-    fontSize: 11,
-    fontWeight: "700",
+    fontSize: 9,
+    fontWeight: "500",
     textTransform: "uppercase",
-    letterSpacing: 0.8
+    letterSpacing: 1.6
   },
   wishlistButton: {
     position: "absolute",
     right: 14,
     top: 14,
-    width: 38,
-    height: 38,
-    borderRadius: 999,
+    width: 34,
+    height: 34,
+    borderRadius: 2,
+    borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.94)"
+    zIndex: 5,
+    elevation: 5
   },
   content: {
-    padding: 16,
+    padding: 14,
     gap: 8
   },
   name: {
-    fontSize: 18,
-    fontWeight: "700"
+    fontSize: 15,
+    fontWeight: "400",
+    letterSpacing: 0.4
   },
   meta: {
     fontSize: 13,
@@ -152,7 +168,7 @@ const styles = StyleSheet.create({
   stockPill: {
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 999
+    borderRadius: 2
   },
   stockText: {
     fontSize: 11,

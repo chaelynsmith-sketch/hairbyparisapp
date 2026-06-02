@@ -17,25 +17,26 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: theme.card,
-          borderTopColor: "transparent",
-          borderRadius: 26,
-          marginHorizontal: 12,
-          marginBottom: 12,
-          height: 74,
-          paddingTop: 10,
-          paddingBottom: 10,
+          borderTopColor: theme.border,
+          borderTopWidth: 1,
+          borderRadius: 0,
+          marginHorizontal: 0,
+          marginBottom: 0,
+          height: 62,
+          paddingTop: 7,
+          paddingBottom: 7,
           position: "absolute",
-          shadowColor: "#2D1B14",
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.08,
-          shadowRadius: 24,
-          elevation: 10
+          shadowColor: "#2C1A0E",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.04,
+          shadowRadius: 10,
+          elevation: 6
         },
         tabBarActiveTintColor: theme.primary,
         tabBarInactiveTintColor: theme.muted,
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: "700"
+          fontWeight: "500"
         }
       }}
     >

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 16,
     paddingVertical: 16,
     minHeight: 120,
@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   sendButton: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   sendButtonText: {

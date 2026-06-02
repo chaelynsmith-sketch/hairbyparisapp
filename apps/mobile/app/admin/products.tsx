@@ -7,11 +7,11 @@ import { Alert, ScrollView, Pressable, StyleSheet, Text, TextInput, View, Image,
 import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/hooks/use-theme";
-import { fetchAdminProducts, fetchSuppliers } from "@/services/admin-service";
+import { fetchAdminProducts } from "@/services/admin-service";
 import { createProduct, deleteProduct, updateProduct } from "@/services/catalog-service";
 import { uploadMedia } from "@/services/upload-service";
 
-const defaultCategories = ["Hair Products", "Hair Extensions", "Tools", "Wigs"];
+const defaultCategories = ["Wigs", "Bundles", "Closures & Frontals", "Hair Accessories"];
 type ProductMedia = { url: string; type: string; alt?: string };
 type ProductVariantForm = {
   _id?: string;
@@ -28,7 +28,7 @@ const emptyForm = {
   _id: "",
   name: "",
   slug: "",
-  category: "Hair Products",
+  category: "Wigs",
   tags: "",
   description: "",
   amount: "",
@@ -36,12 +36,7 @@ const emptyForm = {
   sku: "",
   quantity: "",
   media: [] as ProductMedia[],
-  variants: [] as ProductVariantForm[],
-  supplierId: "",
-  supplierPlatform: "",
-  supplierSourceUrl: "",
-  supplierReference: "",
-  supplierNotes: ""
+  variants: [] as ProductVariantForm[]
 };
 
 function slugify(value: string) {
@@ -76,10 +71,6 @@ export default function AdminProductsScreen() {
   const { data: products = [] } = useQuery({
     queryKey: ["admin-products"],
     queryFn: fetchAdminProducts
-  });
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ["suppliers"],
-    queryFn: fetchSuppliers
   });
   const categoryOptions = Array.from(
     new Set([...defaultCategories, ...products.map((product: any) => product.category).filter(Boolean), form.category].filter(Boolean))
@@ -149,13 +140,6 @@ export default function AdminProductsScreen() {
           baseCurrency: "ZAR",
           amount: Number(form.amount || 0),
           saleAmount: form.saleAmount ? Number(form.saleAmount) : undefined
-        },
-        supplierId: form.supplierId || undefined,
-        sourcing: {
-          platform: form.supplierPlatform.trim() || undefined,
-          sourceUrl: form.supplierSourceUrl.trim() || undefined,
-          supplierReference: form.supplierReference.trim() || undefined,
-          notes: form.supplierNotes.trim() || undefined
         },
         inventory: {
           sku: form.sku,
@@ -486,12 +470,7 @@ export default function AdminProductsScreen() {
                 }))
               : []
           }))
-        : [],
-      supplierId: product.supplierId || "",
-      supplierPlatform: product.sourcing?.platform || "",
-      supplierSourceUrl: product.sourcing?.sourceUrl || "",
-      supplierReference: product.sourcing?.supplierReference || "",
-      supplierNotes: product.sourcing?.notes || ""
+        : []
     });
     setPreviewMedia(
       Array.isArray(product.media)
@@ -538,14 +517,10 @@ export default function AdminProductsScreen() {
           ["category", "Category"],
           ["tags", "Tags (comma separated)"],
           ["description", "Description"],
-          ["amount", "Price"],
+          ["amount", "Price (ZAR)"],
           ["saleAmount", "Sale price"],
           ["sku", "SKU"],
-          ["quantity", "Stock quantity"],
-          ["supplierPlatform", "Supplier platform"],
-          ["supplierSourceUrl", "Supplier product link"],
-          ["supplierReference", "Supplier reference / SKU"],
-          ["supplierNotes", "Supplier notes"]
+          ["quantity", "Stock quantity"]
         ].map(([key, label]) => (
           <TextInput
             key={key}
@@ -585,30 +560,6 @@ export default function AdminProductsScreen() {
         </Text>
         <Text style={{ color: theme.muted }}>
           Use tags for extra grouping like Best Seller, New In, Bundles, Sale, or Human Hair.
-        </Text>
-
-        <View style={styles.categories}>
-          {suppliers.map((supplier: any) => (
-            <Pressable
-              key={supplier._id}
-              onPress={() => setForm((current) => ({ ...current, supplierId: supplier._id }))}
-              style={[
-                styles.categoryPill,
-                {
-                  backgroundColor: form.supplierId === supplier._id ? theme.primary : theme.canvas
-                }
-              ]}
-            >
-              <Text style={{ color: form.supplierId === supplier._id ? "#FFFFFF" : theme.text }}>{supplier.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-        <Text style={{ color: theme.muted }}>
-          {suppliers.length
-            ? form.supplierId
-              ? `Assigned supplier selected.`
-              : "Select a supplier for automatic dispatch, or leave blank for manual fallback."
-            : "No suppliers yet. Add suppliers from the admin dashboard first."}
         </Text>
 
         <Pressable onPress={pickProductMedia} style={[styles.secondaryButton, { borderColor: theme.border }]}>
@@ -789,10 +740,7 @@ export default function AdminProductsScreen() {
               <Text style={{ color: theme.text, fontWeight: "700" }}>{product.name}</Text>
               <Text style={{ color: theme.muted }}>{product.category}</Text>
               <Text style={{ color: theme.muted }}>
-                Supplier: {suppliers.find((supplier: any) => supplier._id === product.supplierId)?.name || "Manual fallback"}
-              </Text>
-              <Text style={{ color: theme.muted }}>
-                Source: {product.sourcing?.platform || "Not linked"}
+                Stock: {product.inventory?.quantity ?? 0}
               </Text>
               <Text style={{ color: theme.muted }}>
                 Tags: {product.tags?.length ? product.tags.join(", ") : "No tags"}
@@ -850,7 +798,7 @@ export default function AdminProductsScreen() {
 }
 
 const styles = StyleSheet.create({
-  formCard: { borderWidth: 1, borderRadius: 24, padding: 20, gap: 12 },
+  formCard: { borderWidth: 1, borderRadius: 2, padding: 20, gap: 12 },
   sectionTitle: { fontSize: 20, fontWeight: "700" },
   feedbackText: {
     fontSize: 14,
@@ -861,11 +809,11 @@ const styles = StyleSheet.create({
   },
   input: { borderWidth: 1, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 14 },
   categories: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  categoryPill: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 999 },
+  categoryPill: { paddingHorizontal: 12, paddingVertical: 10, borderRadius: 2 },
   secondaryButton: { borderWidth: 1, borderRadius: 16, padding: 14, alignItems: "center" },
   smallButton: { borderWidth: 1, borderRadius: 14, paddingHorizontal: 12, paddingVertical: 10 },
-  variantCard: { borderWidth: 1, borderRadius: 20, padding: 14, gap: 12 },
-  variantEditor: { borderWidth: 1, borderRadius: 18, padding: 14, gap: 10 },
+  variantCard: { borderWidth: 1, borderRadius: 2, padding: 14, gap: 12 },
+  variantEditor: { borderWidth: 1, borderRadius: 2, padding: 14, gap: 10 },
   actionRow: {
     flexDirection: "row",
     gap: 10
@@ -887,12 +835,12 @@ const styles = StyleSheet.create({
     width: 220,
     gap: 8
   },
-  previewImage: { width: 220, height: 220, borderRadius: 18 },
-  previewVideo: { width: 220, height: 220, borderRadius: 18, objectFit: "cover" },
+  previewImage: { width: 220, height: 220, borderRadius: 2 },
+  previewVideo: { width: 220, height: 220, borderRadius: 2, objectFit: "cover" },
   videoFallback: {
     width: 220,
     height: 220,
-    borderRadius: 18,
+    borderRadius: 2,
     borderWidth: 1,
     alignItems: "center",
     justifyContent: "center",
@@ -905,10 +853,10 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   productRow: { flexDirection: "row", gap: 12 },
-  productChip: { borderWidth: 1, borderRadius: 18, padding: 14, minWidth: 220, gap: 4 },
+  productChip: { borderWidth: 1, borderRadius: 2, padding: 14, minWidth: 220, gap: 4 },
   removeButton: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingVertical: 14,
     alignItems: "center"
   },

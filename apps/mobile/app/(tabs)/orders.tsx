@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
   },
   emptyCard: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 2,
     padding: 20,
     gap: 12
   },
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
   },
   ctaButton: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   ctaText: {
@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: 2,
     padding: 18
   },
   orderNumber: {

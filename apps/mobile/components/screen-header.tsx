@@ -30,33 +30,37 @@ export function ScreenHeader({ title, subtitle, actionLabel = "Close", onActionP
 
 const styles = StyleSheet.create({
   wrapper: {
-    gap: 14
+    gap: 10
   },
   copy: {
-    gap: 8
+    gap: 7
   },
   eyebrowBar: {
-    width: 64,
-    height: 6,
-    borderRadius: 999
+    width: 42,
+    height: 1
   },
   title: {
-    fontSize: 30,
-    fontWeight: "800"
+    fontFamily: "Georgia",
+    fontSize: 26,
+    fontWeight: "400",
+    letterSpacing: 0.4
   },
   subtitle: {
-    fontSize: 14,
-    lineHeight: 22
+    fontSize: 12,
+    lineHeight: 20,
+    letterSpacing: 0.3
   },
   action: {
     alignSelf: "flex-start",
     borderWidth: 1,
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 10
+    borderRadius: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 9
   },
   actionText: {
-    fontSize: 13,
-    fontWeight: "700"
+    fontSize: 10,
+    fontWeight: "500",
+    letterSpacing: 1.3,
+    textTransform: "uppercase"
   }
 });

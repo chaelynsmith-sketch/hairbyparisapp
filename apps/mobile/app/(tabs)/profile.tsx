@@ -2,7 +2,6 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
-import { themeLabels, ThemeOption } from "@/constants/theme";
 import { Screen } from "@/components/screen";
 import { regions } from "@/constants/regions";
 import { useTheme } from "@/hooks/use-theme";
@@ -18,8 +17,7 @@ type PushRegistrationResult = {
 export default function ProfileScreen() {
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const { user, country, currency, setRegion, clearSession, setGuestCart, themePreference, setThemePreference } =
-    useSessionStore();
+  const { user, country, currency, setRegion, clearSession, setGuestCart } = useSessionStore();
   const enablePushMutation = useMutation<PushRegistrationResult>({
     mutationFn: registerDeviceForPushNotifications
   });
@@ -79,25 +77,6 @@ export default function ProfileScreen() {
             <Text style={{ color: country === region.code ? "#FFFFFF" : theme.text }}>
               {region.name} | {region.currency}
             </Text>
-          </Pressable>
-        ))}
-      </View>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: theme.text }]}>Appearance</Text>
-        {(Object.keys(themeLabels) as ThemeOption[]).map((option) => (
-          <Pressable
-            key={option}
-            onPress={() => setThemePreference(option)}
-            style={[
-              styles.regionCard,
-              {
-                backgroundColor: themePreference === option ? theme.primary : theme.card,
-                borderColor: themePreference === option ? theme.primary : theme.border
-              }
-            ]}
-          >
-            <Text style={{ color: themePreference === option ? "#FFFFFF" : theme.text }}>{themeLabels[option]}</Text>
           </Pressable>
         ))}
       </View>
@@ -168,13 +147,15 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 24,
-    padding: 20,
+    borderRadius: 2,
+    padding: 18,
     gap: 8
   },
   name: {
     fontSize: 24,
-    fontWeight: "800"
+    fontFamily: "Georgia",
+    fontWeight: "400",
+    letterSpacing: 1
   },
   section: {
     gap: 12
@@ -185,12 +166,12 @@ const styles = StyleSheet.create({
   },
   regionCard: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 14
   },
   adminLink: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 16,
     gap: 4
   },
@@ -198,7 +179,7 @@ const styles = StyleSheet.create({
     gap: 12
   },
   primaryAction: {
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 16,
     alignItems: "center"
   },
@@ -208,13 +189,13 @@ const styles = StyleSheet.create({
   },
   secondaryAction: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 16,
     alignItems: "center"
   },
   logout: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 16,
     alignItems: "center"
   }

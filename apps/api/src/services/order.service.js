@@ -4,7 +4,6 @@ const { Product } = require("../models/product.model");
 const { Order } = require("../models/order.model");
 const { Discount } = require("../models/discount.model");
 const { convertCurrency } = require("./currency.service");
-const { dispatchOrderToSupplier } = require("./supplier.service");
 const { sendPushNotification } = require("./notification.service");
 const { ApiError } = require("../utils/api-error");
 
@@ -89,6 +88,10 @@ async function buildCheckoutSummary({ user, store, couponCode }) {
 }
 
 async function placeOrder({ user, store, shippingAddress, paymentProvider, paymentMethodType, couponCode, forceDuplicate }) {
+  if ((shippingAddress?.country || "ZA").toUpperCase() !== "ZA") {
+    throw new ApiError(400, "Hair By Paris delivers within South Africa only");
+  }
+
   const { cart, items, totals } = await buildCheckoutSummary({ user, store, couponCode });
 
   if (!items.length) {
@@ -139,12 +142,8 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
       productId: item.productId.id,
       variantId: item.variantId,
       variantLabel: item.variantLabel,
-      supplierId: item.productId.supplierId,
       name: item.variantLabel ? `${item.productId.name} - ${item.variantLabel}` : item.productId.name,
       sku: item.sku || item.productId.inventory.sku,
-      supplierPlatform: item.productId.sourcing?.platform,
-      supplierSourceUrl: item.productId.sourcing?.sourceUrl,
-      supplierReference: item.productId.sourcing?.supplierReference,
       quantity: item.quantity,
       unitPrice: convertCurrency(item.unitPrice, item.currency, store.defaultCurrency),
       currency: store.defaultCurrency
@@ -171,7 +170,7 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
   });
 
   if (items.length) {
-    // Inventory is decremented at order creation time to avoid overselling during manual supplier review.
+    // Inventory is decremented at order creation time to avoid overselling.
     await Product.bulkWrite(
       items.map((item) =>
         item.variantId
@@ -192,12 +191,11 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
     );
   }
 
-  const supplierDispatch = await dispatchOrderToSupplier(order);
-  order.fulfillment.supplierDispatchStatus = supplierDispatch.some(
-    (entry) => entry.status === "manual_action_required"
-  )
-    ? "manual_review"
-    : "dispatched";
+  order.status = "processing";
+  order.trackingEvents.push({
+    status: "processing",
+    message: "Order received by Hair By Paris retail fulfillment."
+  });
   await order.save();
 
   if (cart) {
@@ -213,7 +211,7 @@ async function placeOrder({ user, store, shippingAddress, paymentProvider, payme
     data: { orderId: order.id }
   });
 
-  return { order, supplierDispatch, duplicateAttempt: Boolean(existingPendingOrder && forceDuplicate) };
+  return { order, duplicateAttempt: Boolean(existingPendingOrder && forceDuplicate) };
 }
 
 module.exports = { buildCheckoutSummary, placeOrder };

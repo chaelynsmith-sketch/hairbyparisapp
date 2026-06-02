@@ -1,13 +1,12 @@
-const Stripe = require("stripe");
+const crypto = require("crypto");
 const { ApiError } = require("../utils/api-error");
 const { Order } = require("../models/order.model");
-const { syncPayoutsForPaymentStatus } = require("./payout.service");
 
-const SUPPORTED_PAYMENT_PROVIDERS = ["paypal", "payfast", "ozow"];
+const SUPPORTED_PAYMENT_PROVIDERS = ["payfast"];
 
 function getEnabledPaymentMethods(store) {
   return Object.entries(store.paymentMethods || {})
-    .filter(([, enabled]) => Boolean(enabled))
+    .filter(([key, enabled]) => key === "payfast" && Boolean(enabled))
     .map(([key]) => key);
 }
 
@@ -20,56 +19,27 @@ function sanitizePaymentMetadata(metadata = {}) {
 }
 
 function assertPaymentProviderAllowed(store, provider) {
-  if (!SUPPORTED_PAYMENT_PROVIDERS.includes(provider)) {
-    throw new ApiError(400, "Unsupported payment provider");
+  if (provider !== "payfast") {
+    throw new ApiError(400, "Hair By Paris accepts PayFast only");
   }
 
-  const enabledMethods = getEnabledPaymentMethods(store);
-
-  if (!enabledMethods.includes(provider)) {
-    throw new ApiError(400, "Selected payment method is not enabled for this store");
+  if (!getEnabledPaymentMethods(store).includes("payfast")) {
+    throw new ApiError(400, "PayFast is not enabled for this store");
   }
 }
 
 function assertPaymentProviderConfigured(provider) {
-  if (provider === "paypal") {
-    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
-      if (process.env.NODE_ENV !== "production") {
-        return;
-      }
+  if (provider !== "payfast") {
+    throw new ApiError(400, "Hair By Paris accepts PayFast only");
+  }
 
-      throw new ApiError(500, "PayPal is not configured");
+  if (!process.env.PAYFAST_MERCHANT_ID || !process.env.PAYFAST_MERCHANT_KEY) {
+    if (process.env.NODE_ENV !== "production") {
+      return;
     }
 
-    return;
+    throw new ApiError(500, "PayFast is not configured");
   }
-
-  if (provider === "payfast" || provider === "ozow") {
-    const providerConfigured =
-      provider === "payfast"
-        ? process.env.PAYFAST_MERCHANT_ID && process.env.PAYFAST_MERCHANT_KEY
-        : process.env.OZOW_SITE_CODE && process.env.OZOW_API_KEY;
-
-    if (!providerConfigured) {
-      if (process.env.NODE_ENV !== "production") {
-        return;
-      }
-
-      throw new ApiError(500, `${provider} is not configured`);
-    }
-
-    return;
-  }
-
-  throw new ApiError(400, "Unsupported payment provider");
-}
-
-function getStripeClient() {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    throw new ApiError(500, "Stripe is not configured");
-  }
-
-  return new Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
 function getClientUrl() {
@@ -84,11 +54,27 @@ function getClientUrl() {
     return "http://localhost:8082";
   }
 
-  if (/^https?:\/\//i.test(frontendUrl)) {
-    return frontendUrl;
+  return /^https?:\/\//i.test(frontendUrl) ? frontendUrl : `https://${frontendUrl}`;
+}
+
+function getApiBaseUrl() {
+  const apiBaseUrl = process.env.API_BASE_URL?.trim();
+
+  if (!apiBaseUrl) {
+    return "http://localhost:4000";
   }
 
-  return `https://${frontendUrl}`;
+  return /^https?:\/\//i.test(apiBaseUrl) ? apiBaseUrl : `https://${apiBaseUrl}`;
+}
+
+function getPayFastProcessUrl() {
+  if (process.env.PAYFAST_PROCESS_URL) {
+    return process.env.PAYFAST_PROCESS_URL;
+  }
+
+  return process.env.PAYFAST_SANDBOX === "true"
+    ? "https://sandbox.payfast.co.za/eng/process"
+    : "https://www.payfast.co.za/eng/process";
 }
 
 function isPlaceholderEmail(value) {
@@ -121,95 +107,18 @@ function buildPayFastSignature(fields, passphrase) {
     .join("&");
 
   const payload = passphrase ? `${query}&passphrase=${encodeURIComponent(passphrase).replace(/%20/g, "+")}` : query;
-  return require("crypto").createHash("md5").update(payload).digest("hex");
+  return crypto.createHash("md5").update(payload).digest("hex");
 }
 
-function verifyStripeWebhookEvent(payload, signature) {
-  if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    throw new ApiError(500, "Stripe webhook secret is not configured");
-  }
-
-  return getStripeClient().webhooks.constructEvent(payload, signature, process.env.STRIPE_WEBHOOK_SECRET);
-}
-
-async function getPayPalAccessToken() {
-  if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET || !process.env.PAYPAL_WEBHOOK_ID) {
-    throw new ApiError(500, "PayPal webhook verification is not configured");
-  }
-
-  const environmentBase =
-    process.env.NODE_ENV === "production" ? "https://api-m.paypal.com" : "https://api-m.sandbox.paypal.com";
-
-  const auth = Buffer.from(`${process.env.PAYPAL_CLIENT_ID}:${process.env.PAYPAL_CLIENT_SECRET}`).toString("base64");
-  const tokenResponse = await fetch(`${environmentBase}/v1/oauth2/token`, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${auth}`,
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: "grant_type=client_credentials"
-  });
-
-  if (!tokenResponse.ok) {
-    throw new ApiError(502, "Unable to authenticate PayPal webhook verification");
-  }
-
-  const tokenData = await tokenResponse.json();
-  return { accessToken: tokenData.access_token, environmentBase };
-}
-
-async function verifyPayPalWebhookEvent(headers, body) {
-  const transmissionId = headers["paypal-transmission-id"];
-  const transmissionTime = headers["paypal-transmission-time"];
-  const transmissionSig = headers["paypal-transmission-sig"];
-  const certUrl = headers["paypal-cert-url"];
-  const authAlgo = headers["paypal-auth-algo"];
-
-  if (!transmissionId || !transmissionTime || !transmissionSig || !certUrl || !authAlgo) {
-    throw new ApiError(400, "Missing PayPal webhook verification headers");
-  }
-
-  const { accessToken, environmentBase } = await getPayPalAccessToken();
-  const verificationResponse = await fetch(`${environmentBase}/v1/notifications/verify-webhook-signature`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      auth_algo: authAlgo,
-      cert_url: certUrl,
-      transmission_id: transmissionId,
-      transmission_sig: transmissionSig,
-      transmission_time: transmissionTime,
-      webhook_id: process.env.PAYPAL_WEBHOOK_ID,
-      webhook_event: body
-    })
-  });
-
-  if (!verificationResponse.ok) {
-    throw new ApiError(502, "Unable to verify PayPal webhook signature");
-  }
-
-  const verificationResult = await verificationResponse.json();
-
-  if (verificationResult.verification_status !== "SUCCESS") {
-    throw new ApiError(400, "Invalid PayPal webhook signature");
-  }
-
-  return body;
-}
-
-function verifySharedSecretWebhook(provider, receivedSecret) {
-  const envKey = provider === "payfast" ? "PAYFAST_WEBHOOK_SECRET" : "OZOW_WEBHOOK_SECRET";
-  const expectedSecret = process.env[envKey];
+function verifySharedSecretWebhook(_provider, receivedSecret) {
+  const expectedSecret = process.env.PAYFAST_WEBHOOK_SECRET;
 
   if (!expectedSecret) {
-    throw new ApiError(500, `${provider} webhook secret is not configured`);
+    throw new ApiError(500, "PayFast webhook secret is not configured");
   }
 
   if (!receivedSecret || receivedSecret !== expectedSecret) {
-    throw new ApiError(400, `Invalid ${provider} webhook secret`);
+    throw new ApiError(400, "Invalid PayFast webhook secret");
   }
 }
 
@@ -225,14 +134,7 @@ function mapPaymentStateToOrderStatus(paymentStatus) {
   return "pending";
 }
 
-async function reconcilePaymentUpdate({
-  orderId,
-  provider,
-  paymentStatus,
-  transactionId,
-  eventStatus,
-  eventMessage
-}) {
+async function reconcilePaymentUpdate({ orderId, provider, paymentStatus, transactionId, eventStatus, eventMessage }) {
   if (!orderId) {
     throw new ApiError(400, "Order reference is required for payment reconciliation");
   }
@@ -243,108 +145,67 @@ async function reconcilePaymentUpdate({
     throw new ApiError(404, "Order not found for payment reconciliation");
   }
 
-  order.payment.provider = provider || order.payment.provider;
+  order.payment.provider = provider || "payfast";
   order.payment.status = paymentStatus;
   if (transactionId) {
     order.payment.transactionId = transactionId;
   }
 
-  const mappedOrderStatus = mapPaymentStateToOrderStatus(paymentStatus);
-  order.status = mappedOrderStatus;
+  order.status = mapPaymentStateToOrderStatus(paymentStatus);
 
   const hasEvent = order.trackingEvents.some(
     (event) => event.status === eventStatus && event.message === eventMessage
   );
 
   if (!hasEvent) {
-    order.trackingEvents.push({
-      status: eventStatus,
-      message: eventMessage
-    });
+    order.trackingEvents.push({ status: eventStatus, message: eventMessage });
   }
 
   await order.save();
-  await syncPayoutsForPaymentStatus(order, paymentStatus);
   return order;
 }
 
-async function createPaymentIntent({ amount, currency, provider, metadata }) {
+async function createPaymentIntent({ amount, provider, metadata }) {
   assertPaymentProviderConfigured(provider);
   const sanitizedMetadata = sanitizePaymentMetadata(metadata);
 
-  if (provider === "paypal") {
-    if (!process.env.PAYPAL_CLIENT_ID || !process.env.PAYPAL_CLIENT_SECRET) {
-      return {
-        provider,
-        status: "mock_pending",
-        approvalUrl: "https://sandbox.paypal.mock/checkout"
-      };
-    }
-
+  if (!process.env.PAYFAST_MERCHANT_ID || !process.env.PAYFAST_MERCHANT_KEY) {
     return {
-      provider,
-      status: "pending",
-      approvalUrl: "https://www.paypal.com/checkoutnow"
+      provider: "payfast",
+      status: "mock_pending",
+      redirectUrl: "https://sandbox.payfast.mock/redirect"
     };
   }
 
-  if (provider === "payfast" || provider === "ozow") {
-    const providerConfigured =
-      provider === "payfast"
-        ? process.env.PAYFAST_MERCHANT_ID && process.env.PAYFAST_MERCHANT_KEY
-        : process.env.OZOW_SITE_CODE && process.env.OZOW_API_KEY;
+  const clientUrl = getClientUrl();
+  const notifyUrl = `${getApiBaseUrl()}/api/v1/payments/webhooks/payfast`;
+  const paymentFields = {
+    merchant_id: process.env.PAYFAST_MERCHANT_ID,
+    merchant_key: process.env.PAYFAST_MERCHANT_KEY,
+    return_url: clientUrl,
+    cancel_url: clientUrl,
+    notify_url: notifyUrl,
+    name_first: sanitizedMetadata.customerFirstName || "Hair",
+    name_last: sanitizedMetadata.customerLastName || "By Paris",
+    email_address: getPayFastCustomerEmail(sanitizedMetadata),
+    m_payment_id: sanitizedMetadata.orderId,
+    amount: Number(amount).toFixed(2),
+    item_name: `Hair By Paris Order ${sanitizedMetadata.orderId || ""}`.trim(),
+    item_description: `Payment for order ${sanitizedMetadata.orderId || ""}`.trim(),
+    custom_str1: sanitizedMetadata.orderId || "",
+    custom_str2: sanitizedMetadata.userId || ""
+  };
+  const signature = buildPayFastSignature(paymentFields, process.env.PAYFAST_PASSPHRASE || "");
+  const query = new URLSearchParams({
+    ...Object.fromEntries(Object.entries(paymentFields).map(([key, value]) => [key, String(value)])),
+    signature
+  });
 
-    if (!providerConfigured) {
-      return {
-        provider,
-        status: "mock_pending",
-        redirectUrl: `https://sandbox.${provider}.mock/redirect`
-      };
-    }
-
-    if (provider === "payfast") {
-      const clientUrl = getClientUrl();
-      const notifyUrl = `${process.env.API_BASE_URL || "https://hair-cy-paris-api.onrender.com"}/api/v1/payments/webhooks/payfast`;
-      const paymentFields = {
-        merchant_id: process.env.PAYFAST_MERCHANT_ID,
-        merchant_key: process.env.PAYFAST_MERCHANT_KEY,
-        return_url: clientUrl,
-        cancel_url: clientUrl,
-        notify_url: notifyUrl,
-        name_first: sanitizedMetadata.customerFirstName || "Hair",
-        name_last: sanitizedMetadata.customerLastName || "By Paris",
-        email_address: getPayFastCustomerEmail(sanitizedMetadata),
-        m_payment_id: sanitizedMetadata.orderId,
-        amount: Number(amount).toFixed(2),
-        item_name: `Hair By Paris Order ${sanitizedMetadata.orderId || ""}`.trim(),
-        item_description: `Payment for order ${sanitizedMetadata.orderId || ""}`.trim(),
-        custom_str1: sanitizedMetadata.orderId || "",
-        custom_str2: sanitizedMetadata.userId || ""
-      };
-
-      const signature = buildPayFastSignature(paymentFields, process.env.PAYFAST_PASSPHRASE || "");
-      const query = new URLSearchParams({
-        ...Object.fromEntries(
-          Object.entries(paymentFields).map(([key, value]) => [key, String(value)])
-        ),
-        signature
-      });
-
-      return {
-        provider,
-        status: "pending",
-        redirectUrl: `https://www.payfast.co.za/eng/process?${query.toString()}`
-      };
-    }
-
-    return {
-      provider,
-      status: "pending",
-      redirectUrl: `https://payments.example.com/${provider}`
-    };
-  }
-
-  throw new ApiError(400, "Unsupported payment provider");
+  return {
+    provider: "payfast",
+    status: "pending",
+    redirectUrl: `${getPayFastProcessUrl()}?${query.toString()}`
+  };
 }
 
 module.exports = {
@@ -353,8 +214,6 @@ module.exports = {
   getEnabledPaymentMethods,
   assertPaymentProviderAllowed,
   assertPaymentProviderConfigured,
-  verifyStripeWebhookEvent,
-  verifyPayPalWebhookEvent,
   verifySharedSecretWebhook,
   reconcilePaymentUpdate
 };

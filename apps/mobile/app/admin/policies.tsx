@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 22,
+    borderRadius: 2,
     padding: 18,
     gap: 10
   },
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
   },
   optionPill: {
     borderWidth: 1,
-    borderRadius: 999,
+    borderRadius: 2,
     paddingHorizontal: 14,
     paddingVertical: 10
   },
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {

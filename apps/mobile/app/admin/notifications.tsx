@@ -108,7 +108,7 @@ export default function AdminNotificationsScreen() {
 const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 2,
     padding: 20,
     gap: 12
   },
@@ -124,7 +124,7 @@ const styles = StyleSheet.create({
   pill: {
     paddingHorizontal: 12,
     paddingVertical: 10,
-    borderRadius: 999
+    borderRadius: 2
   },
   input: {
     borderWidth: 1,
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {

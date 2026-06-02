@@ -31,7 +31,7 @@ export function ReviewCard({ review }: { review: Review }) {
 }
 
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderRadius: 22, padding: 16, gap: 10 },
+  card: { borderWidth: 1, borderRadius: 2, padding: 16, gap: 10 },
   header: { flexDirection: "row", justifyContent: "space-between" },
   name: { fontSize: 15, fontWeight: "700" },
   title: { fontSize: 16, fontWeight: "700" },

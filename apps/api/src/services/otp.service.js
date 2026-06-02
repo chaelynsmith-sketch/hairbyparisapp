@@ -36,12 +36,16 @@ async function sendEmailOtp({ destination, purpose, code }) {
     return { delivered: false, channel: "email", reason: "smtp_not_configured", otp: code };
   }
 
-  const subject =
-    purpose === "password_reset" ? "Hair By Paris password reset OTP" : "Hair By Paris username recovery OTP";
-  const text =
-    purpose === "password_reset"
-      ? `Use this OTP to reset your Hair By Paris password: ${code}. It expires in 10 minutes.`
-      : `Use this OTP to recover your Hair By Paris username: ${code}. It expires in 10 minutes.`;
+  const purposeLabels = {
+    password_reset: "password reset",
+    username_recovery: "username recovery",
+    email_verification: "email verification",
+    phone_verification: "phone verification",
+    login: "secure login"
+  };
+  const label = purposeLabels[purpose] || "verification";
+  const subject = `Hair By Paris ${label} OTP`;
+  const text = `Use this OTP for Hair By Paris ${label}: ${code}. It expires in 10 minutes.`;
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
@@ -63,10 +67,14 @@ async function sendSmsOtp({ destination, purpose, code }) {
     return { delivered: false, channel: "sms", reason: "twilio_not_configured", otp: code };
   }
 
-  const body =
-    purpose === "password_reset"
-      ? `Hair By Paris password reset OTP: ${code}. Expires in 10 minutes.`
-      : `Hair By Paris username recovery OTP: ${code}. Expires in 10 minutes.`;
+  const purposeLabels = {
+    password_reset: "password reset",
+    username_recovery: "username recovery",
+    email_verification: "email verification",
+    phone_verification: "phone verification",
+    login: "secure login"
+  };
+  const body = `Hair By Paris ${purposeLabels[purpose] || "verification"} OTP: ${code}. Expires in 10 minutes.`;
 
   const response = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
     method: "POST",

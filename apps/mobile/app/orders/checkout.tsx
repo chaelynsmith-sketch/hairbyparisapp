@@ -491,7 +491,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 2,
     padding: 20,
     gap: 8
   },
@@ -505,7 +505,7 @@ const styles = StyleSheet.create({
   },
   noteCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 2,
     padding: 16,
     gap: 6
   },
@@ -515,7 +515,7 @@ const styles = StyleSheet.create({
   },
   methodCard: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     padding: 14,
     gap: 6
   },
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {

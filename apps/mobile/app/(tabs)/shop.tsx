@@ -17,11 +17,14 @@ export default function ShopScreen() {
   const wishlist = useSessionStore((state) => state.wishlist);
   const toggleWishlistItem = useSessionStore((state) => state.toggleWishlistItem);
   const [category, setCategory] = useState<string | undefined>();
+  const [texture, setTexture] = useState<string | undefined>();
+  const [length, setLength] = useState<string | undefined>();
+  const [priceBand, setPriceBand] = useState<string | undefined>();
   const [search, setSearch] = useState("");
 
-  const { data: products = [] } = useQuery({
-    queryKey: ["products", category, search, currency],
-    queryFn: () => fetchProducts({ category, search, currency }),
+  const { data: sourceProducts = [] } = useQuery({
+    queryKey: ["products", search, currency],
+    queryFn: () => fetchProducts({ search, currency }),
     refetchOnMount: "always"
   });
   const { data: categorySourceProducts = [] } = useQuery({
@@ -31,21 +34,42 @@ export default function ShopScreen() {
   });
   const categories = Array.from(
     new Set(
-      [...categorySourceProducts, ...products]
+      [...categorySourceProducts, ...sourceProducts]
         .map((product: StorefrontProduct) => product.category)
         .filter(Boolean)
     )
   );
+  const textures = Array.from(new Set(sourceProducts.map((product: StorefrontProduct) => product.attributes?.texture).filter(Boolean)));
+  const lengths = Array.from(new Set(sourceProducts.map((product: StorefrontProduct) => product.attributes?.length).filter(Boolean)));
+  const priceBands = [
+    { label: "Under R1,000", value: "under-1000", test: (price: number) => price < 1000 },
+    { label: "R1,000 - R2,500", value: "1000-2500", test: (price: number) => price >= 1000 && price <= 2500 },
+    { label: "R2,500+", value: "2500-plus", test: (price: number) => price > 2500 }
+  ];
+  const selectedPriceBand = priceBands.find((item) => item.value === priceBand);
+  const products = sourceProducts.filter((product: StorefrontProduct) => {
+    const price = product.displayPrice ?? product.pricing.saleAmount ?? product.pricing.amount;
+    return (
+      (!category || product.category === category) &&
+      (!texture || product.attributes?.texture === texture) &&
+      (!length || product.attributes?.length === length) &&
+      (!selectedPriceBand || selectedPriceBand.test(price))
+    );
+  });
+  const hasFilters = Boolean(category || texture || length || priceBand || search);
 
   return (
     <Screen>
       <ScreenHeader
         title="Shop the full catalog"
-        subtitle="Browse by category, clear filters quickly, and jump back home whenever you want."
-        actionLabel={category || search ? "Clear filters" : "Back home"}
+        subtitle="Search and filter by texture, length, price, and category for a fast luxury shopping flow."
+        actionLabel={hasFilters ? "Clear filters" : "Back home"}
         onActionPress={() => {
-          if (category || search) {
+          if (hasFilters) {
             setCategory(undefined);
+            setTexture(undefined);
+            setLength(undefined);
+            setPriceBand(undefined);
             setSearch("");
             return;
           }
@@ -57,7 +81,7 @@ export default function ShopScreen() {
         <Text style={[styles.eyebrow, { color: theme.primary }]}>Curated catalog</Text>
         <Text style={[styles.title, { color: theme.text }]}>Find your next install</Text>
         <Text style={[styles.subtitle, { color: theme.muted }]}>
-          Browse bundles, wigs, care, and tools by texture, style need, or beauty routine.
+          Browse wigs, bundles, closures, frontals, and accessories by texture, length, price, or category.
         </Text>
       </View>
 
@@ -103,6 +127,37 @@ export default function ShopScreen() {
           })}
         </View>
       ) : null}
+      {[
+        ["Texture", textures, texture, setTexture],
+        ["Length", lengths, length, setLength],
+        ["Price", priceBands.map((item) => item.label), selectedPriceBand?.label, (value?: string) => setPriceBand(priceBands.find((item) => item.label === value)?.value)]
+      ].map(([label, items, activeValue, setter]: any) =>
+        items.length ? (
+          <View key={label} style={styles.filterGroup}>
+            <Text style={[styles.filterLabel, { color: theme.muted }]}>{label}</Text>
+            <View style={styles.filters}>
+              {items.map((item: string) => {
+                const active = activeValue === item;
+                return (
+                  <Pressable
+                    key={item}
+                    onPress={() => setter(active ? undefined : item)}
+                    style={[
+                      styles.filterPill,
+                      {
+                        backgroundColor: active ? theme.primary : theme.card,
+                        borderColor: active ? theme.primary : theme.border
+                      }
+                    ]}
+                  >
+                    <Text style={{ color: active ? "#FFFFFF" : theme.text }}>{item}</Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ) : null
+      )}
 
       <View style={styles.resultsHeader}>
         <Text style={[styles.resultsCount, { color: theme.text }]}>
@@ -129,7 +184,7 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   hero: {
     borderWidth: 1,
-    borderRadius: 28,
+    borderRadius: 2,
     padding: 22,
     gap: 8
   },
@@ -140,8 +195,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1.1
   },
   title: {
-    fontSize: 28,
-    fontWeight: "800"
+    fontFamily: "Georgia",
+    fontSize: 26,
+    fontWeight: "400",
+    letterSpacing: 0.4
   },
   subtitle: {
     fontSize: 14,
@@ -149,7 +206,7 @@ const styles = StyleSheet.create({
   },
   search: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 18,
     paddingVertical: 16
   },
@@ -158,10 +215,19 @@ const styles = StyleSheet.create({
     flexWrap: "wrap",
     gap: 10
   },
+  filterGroup: {
+    gap: 8
+  },
+  filterLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 1
+  },
   filterPill: {
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderRadius: 999,
+    borderRadius: 2,
     borderWidth: 1
   },
   resultsHeader: {
@@ -170,8 +236,9 @@ const styles = StyleSheet.create({
     alignItems: "center"
   },
   resultsCount: {
-    fontSize: 18,
-    fontWeight: "700"
+    fontFamily: "Georgia",
+    fontSize: 20,
+    fontWeight: "400"
   },
   grid: {
     gap: 16

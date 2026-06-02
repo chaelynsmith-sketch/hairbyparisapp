@@ -16,6 +16,7 @@ export default function LoginScreen() {
   const setRememberedIdentifier = useSessionStore((state) => state.setRememberedIdentifier);
   const [identifier, setIdentifier] = useState(rememberedIdentifier);
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const mutation = useMutation({
     mutationFn: () => login(identifier, password),
@@ -25,12 +26,11 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     }
   });
-
   return (
     <Screen>
       <ScreenHeader
         title="Sign in"
-        subtitle="Use your email, phone number, or username with a password that is at least 14 characters and includes letters, numbers, and a special character."
+        subtitle="Sign in with your verified account email, phone, or username and password."
         actionLabel="Back to profile"
         onActionPress={() => router.replace("/(tabs)/profile")}
       />
@@ -47,9 +47,12 @@ export default function LoginScreen() {
         onChangeText={setPassword}
         placeholder="Password"
         placeholderTextColor={theme.muted}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
       />
+      <Pressable onPress={() => setShowPassword((value) => !value)} style={styles.passwordToggle}>
+        <Text style={[styles.linkText, { color: theme.primary }]}>{showPassword ? "Hide password" : "Show password"}</Text>
+      </Pressable>
       {mutation.error ? <Text style={styles.errorText}>{(mutation.error as any)?.response?.data?.message || "Unable to sign in"}</Text> : null}
       <Pressable onPress={() => mutation.mutate()} style={[styles.button, { backgroundColor: theme.primary }]}>
         <Text style={styles.buttonText}>Sign in</Text>
@@ -72,13 +75,13 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 16,
     paddingVertical: 16
   },
   button: {
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {
@@ -87,6 +90,10 @@ const styles = StyleSheet.create({
   },
   links: {
     gap: 10
+  },
+  passwordToggle: {
+    alignSelf: "flex-start",
+    marginTop: -6
   },
   linkText: {
     fontWeight: "700"

@@ -31,6 +31,6 @@ const styles = StyleSheet.create({
     maxWidth: "88%",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 18
+    borderRadius: 2
   }
 });

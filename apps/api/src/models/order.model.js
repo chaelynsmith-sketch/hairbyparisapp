@@ -5,12 +5,8 @@ const orderItemSchema = new mongoose.Schema(
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
     variantId: String,
     variantLabel: String,
-    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     name: String,
     sku: String,
-    supplierPlatform: String,
-    supplierSourceUrl: String,
-    supplierReference: String,
     quantity: Number,
     unitPrice: Number,
     currency: String
@@ -60,11 +56,7 @@ const orderSchema = new mongoose.Schema(
       transactionId: String
     },
     fulfillment: {
-      type: { type: String, enum: ["dropship", "manual"], default: "dropship" },
-      supplierDispatchStatus: { type: String, default: "queued" },
-      supplierOrderPlacedAt: Date,
-      supplierOrderReference: String,
-      supplierNotes: String,
+      type: { type: String, enum: ["manual"], default: "manual" },
       estimatedDeliveryStart: Date,
       estimatedDeliveryEnd: Date,
       trackingNumber: String,
@@ -77,7 +69,7 @@ const orderSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "paid", "processing", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "paid", "processing", "packed", "shipped", "delivered", "cancelled"],
       default: "pending"
     },
     trackingEvents: [trackingEventSchema]

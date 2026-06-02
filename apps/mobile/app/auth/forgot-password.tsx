@@ -13,6 +13,7 @@ export default function ForgotPasswordScreen() {
   const [identifier, setIdentifier] = useState("");
   const [otp, setOtp] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [status, setStatus] = useState("");
 
   const requestMutation = useMutation({
@@ -62,9 +63,14 @@ export default function ForgotPasswordScreen() {
         onChangeText={setNewPassword}
         placeholder="New password"
         placeholderTextColor={theme.muted}
-        secureTextEntry
+        secureTextEntry={!showPassword}
         style={[styles.input, { backgroundColor: theme.card, color: theme.text, borderColor: theme.border }]}
       />
+      <Pressable onPress={() => setShowPassword((value) => !value)} style={styles.passwordToggle}>
+        <Text style={{ color: theme.primary, fontWeight: "700" }}>
+          {showPassword ? "Hide password" : "Show password"}
+        </Text>
+      </Pressable>
       <Text style={{ color: theme.muted }}>Password rule: 14+ characters with letters, numbers, and a special character.</Text>
       {status ? <Text style={{ color: theme.muted }}>{status}</Text> : null}
       {requestMutation.error || resetMutation.error ? (
@@ -82,13 +88,13 @@ export default function ForgotPasswordScreen() {
 const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 16,
     paddingVertical: 16
   },
   button: {
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {
@@ -97,9 +103,13 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingVertical: 16,
     alignItems: "center"
+  },
+  passwordToggle: {
+    alignSelf: "flex-start",
+    marginTop: -6
   },
   errorText: {
     color: "#B3261E"

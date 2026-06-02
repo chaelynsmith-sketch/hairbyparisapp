@@ -50,6 +50,63 @@ function buildAuthResponse(user) {
   };
 }
 
+function isActivated(user) {
+  return Boolean(user.verification?.emailVerified && user.verification?.phoneVerified && user.verification?.activatedAt);
+}
+
+async function sendAccountVerificationOtps(user) {
+  const emailCode = generateOtp();
+  const phoneCode = generateOtp();
+
+  user.recoveryOtps = (user.recoveryOtps || []).filter(
+    (entry) => !["email_verification", "phone_verification"].includes(entry.purpose)
+  );
+  user.recoveryOtps.push(
+    {
+      purpose: "email_verification",
+      codeHash: hashOtp(emailCode),
+      destination: user.email,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    },
+    {
+      purpose: "phone_verification",
+      codeHash: hashOtp(phoneCode),
+      destination: user.phone,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    }
+  );
+  await user.save();
+
+  const [emailDelivery, phoneDelivery] = await Promise.all([
+    sendOtp({ destination: user.email, purpose: "email_verification", code: emailCode }),
+    sendOtp({ destination: user.phone, purpose: "phone_verification", code: phoneCode })
+  ]);
+
+  return {
+    email: {
+      destination: user.email,
+      deliveryChannel: emailDelivery.channel,
+      deliveryFallback: !emailDelivery.delivered,
+      otpPreview: emailDelivery.delivered ? undefined : emailDelivery.otp
+    },
+    phone: {
+      destination: user.phone,
+      deliveryChannel: phoneDelivery.channel,
+      deliveryFallback: !phoneDelivery.delivered,
+      otpPreview: phoneDelivery.delivered ? undefined : phoneDelivery.otp
+    },
+    expiresInMinutes: 10
+  };
+}
+
+async function persistRefreshToken(user, refreshToken) {
+  user.refreshTokens.push({
+    token: refreshToken,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  });
+  await user.save();
+}
+
 async function register(req, res) {
   const email = normalizeEmail(req.body.email);
   const phone = normalizePhone(req.body.phone);
@@ -80,17 +137,79 @@ async function register(req, res) {
     preferredLanguage: req.body.preferredLanguage || "en",
     country: req.body.country || store?.country || "ZA",
     currency: req.body.currency || store?.defaultCurrency || "ZAR",
-    referralCode: crypto.randomBytes(4).toString("hex").toUpperCase()
+    referralCode: crypto.randomBytes(4).toString("hex").toUpperCase(),
+    verification: {
+      emailVerified: false,
+      phoneVerified: false
+    }
   });
+
+  const verification = await sendAccountVerificationOtps(user);
+
+  res.status(201).json({
+    message: "Account created. Verify both email and phone OTPs to activate your Hair By Paris account.",
+    userId: user.id,
+    verification
+  });
+}
+
+async function verifyRegistration(req, res) {
+  const user = await User.findById(req.body.userId);
+
+  if (!user) {
+    throw new ApiError(404, "Account not found");
+  }
+
+  const now = new Date();
+  const emailHash = hashOtp(req.body.emailOtp);
+  const phoneHash = hashOtp(req.body.phoneOtp);
+  const emailOtp = (user.recoveryOtps || []).find(
+    (entry) =>
+      entry.purpose === "email_verification" &&
+      entry.destination === user.email &&
+      entry.codeHash === emailHash &&
+      entry.expiresAt > now
+  );
+  const phoneOtp = (user.recoveryOtps || []).find(
+    (entry) =>
+      entry.purpose === "phone_verification" &&
+      entry.destination === user.phone &&
+      entry.codeHash === phoneHash &&
+      entry.expiresAt > now
+  );
+
+  if (!emailOtp || !phoneOtp) {
+    throw new ApiError(401, "Both email and phone OTPs must be valid before activation");
+  }
+
+  user.verification = {
+    emailVerified: true,
+    phoneVerified: true,
+    activatedAt: new Date()
+  };
+  user.recoveryOtps = (user.recoveryOtps || []).filter(
+    (entry) => !["email_verification", "phone_verification"].includes(entry.purpose)
+  );
 
   const auth = buildAuthResponse(user);
-  user.refreshTokens.push({
-    token: auth.refreshToken,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-  });
-  await user.save();
+  await persistRefreshToken(user, auth.refreshToken);
 
-  res.status(201).json(auth);
+  res.json(auth);
+}
+
+async function resendRegistrationOtp(req, res) {
+  const user = await User.findById(req.body.userId);
+
+  if (!user) {
+    throw new ApiError(404, "Account not found");
+  }
+
+  if (isActivated(user)) {
+    throw new ApiError(409, "Account is already verified");
+  }
+
+  const verification = await sendAccountVerificationOtps(user);
+  res.json({ message: "Verification OTPs resent", verification });
 }
 
 async function login(req, res) {
@@ -100,12 +219,64 @@ async function login(req, res) {
     throw new ApiError(401, "Invalid email, phone, username, or password");
   }
 
+  if (!isActivated(user)) {
+    throw new ApiError(403, "Verify both email and phone OTPs before signing in");
+  }
+
   const auth = buildAuthResponse(user);
-  user.refreshTokens.push({
-    token: auth.refreshToken,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  await persistRefreshToken(user, auth.refreshToken);
+
+  res.json(auth);
+}
+
+async function requestLoginOtp(req, res) {
+  const user = await findUserByIdentifier(req.body.identifier);
+
+  if (!user || !isActivated(user)) {
+    throw new ApiError(404, "Verified account not found");
+  }
+
+  const destination = req.body.channel === "email" ? user.email : user.phone;
+  const code = generateOtp();
+  user.recoveryOtps = (user.recoveryOtps || []).filter((entry) => entry.purpose !== "login");
+  user.recoveryOtps.push({
+    purpose: "login",
+    codeHash: hashOtp(code),
+    destination,
+    expiresAt: new Date(Date.now() + 10 * 60 * 1000)
   });
   await user.save();
+
+  const delivery = await sendOtp({ destination, purpose: "login", code });
+  res.json({
+    message: `Login OTP sent to ${destination}`,
+    destination,
+    expiresInMinutes: 10,
+    deliveryChannel: delivery.channel,
+    deliveryFallback: !delivery.delivered,
+    otpPreview: delivery.delivered ? undefined : delivery.otp
+  });
+}
+
+async function verifyLoginOtp(req, res) {
+  const user = await findUserByIdentifier(req.body.identifier);
+
+  if (!user || !isActivated(user)) {
+    throw new ApiError(404, "Verified account not found");
+  }
+
+  const otpHash = hashOtp(req.body.otp);
+  const otpRecord = (user.recoveryOtps || []).find(
+    (entry) => entry.purpose === "login" && entry.codeHash === otpHash && entry.expiresAt > new Date()
+  );
+
+  if (!otpRecord) {
+    throw new ApiError(401, "Invalid or expired login OTP");
+  }
+
+  user.recoveryOtps = (user.recoveryOtps || []).filter((entry) => entry.purpose !== "login");
+  const auth = buildAuthResponse(user);
+  await persistRefreshToken(user, auth.refreshToken);
 
   res.json(auth);
 }
@@ -244,7 +415,11 @@ async function recoverUsername(req, res) {
 
 module.exports = {
   register,
+  verifyRegistration,
+  resendRegistrationOtp,
   login,
+  requestLoginOtp,
+  verifyLoginOtp,
   refresh,
   me,
   requestPasswordOtp,

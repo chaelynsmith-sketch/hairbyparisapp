@@ -179,7 +179,7 @@ export default function CartScreen() {
 const styles = StyleSheet.create({
   emptyCard: {
     borderWidth: 1,
-    borderRadius: 24,
+    borderRadius: 2,
     padding: 20,
     gap: 12
   },
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
   },
   card: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 2,
     padding: 18,
     gap: 10
   },
@@ -239,7 +239,7 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 2,
     padding: 18,
     gap: 8
   },
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
   },
   button: {
     paddingVertical: 16,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {

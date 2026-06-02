@@ -42,7 +42,6 @@ const variantSchema = new mongoose.Schema(
 const productSchema = new mongoose.Schema(
   {
     storeId: { type: mongoose.Schema.Types.ObjectId, ref: "Store", index: true, required: true },
-    supplierId: { type: mongoose.Schema.Types.ObjectId, ref: "Supplier" },
     category: {
       type: String,
       required: true,
@@ -66,12 +65,6 @@ const productSchema = new mongoose.Schema(
     recommendationSignals: {
       hairTypes: [String],
       useCases: [String]
-    },
-    sourcing: {
-      platform: String,
-      sourceUrl: String,
-      supplierReference: String,
-      notes: String
     },
     featured: { type: Boolean, default: false },
     status: { type: String, enum: ["draft", "active", "archived"], default: "active" }

@@ -84,13 +84,13 @@ export default function RecoverUsernameScreen() {
 const styles = StyleSheet.create({
   input: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingHorizontal: 16,
     paddingVertical: 16
   },
   button: {
     paddingVertical: 18,
-    borderRadius: 18,
+    borderRadius: 2,
     alignItems: "center"
   },
   buttonText: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     borderWidth: 1,
-    borderRadius: 18,
+    borderRadius: 2,
     paddingVertical: 16,
     alignItems: "center"
   },

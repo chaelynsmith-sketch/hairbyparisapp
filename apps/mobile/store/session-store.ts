@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { ThemeOption } from "@/constants/theme";
 import { AppUser, CartItem, StorefrontProduct } from "@/types";
 
 const zustandMiddleware = require("zustand/middleware") as typeof import("zustand/middleware");
@@ -22,7 +21,6 @@ type SessionState = {
   country: string;
   currency: string;
   locale: string;
-  themePreference: ThemeOption;
   wishlist: string[];
   cartCount: number;
   guestCart: CartItem[];
@@ -42,7 +40,6 @@ type SessionState = {
   clearSession: () => void;
   setRememberedIdentifier: (identifier: string) => void;
   setRegion: (payload: { storeKey: string; country: string; currency: string; locale: string }) => void;
-  setThemePreference: (themePreference: ThemeOption) => void;
   setWishlist: (wishlist: string[]) => void;
   toggleWishlistItem: (productId: string) => void;
   setCartCount: (count: number) => void;
@@ -66,7 +63,6 @@ export const useSessionStore = create<SessionState>()(
       country: defaultCountry,
       currency: "ZAR",
       locale: defaultLocale,
-      themePreference: "black_white",
       wishlist: [],
       cartCount: 0,
       guestCart: [],
@@ -92,7 +88,6 @@ export const useSessionStore = create<SessionState>()(
           country: defaultCountry,
           currency: "ZAR",
           locale: defaultLocale,
-          themePreference: "black_white",
           savedShippingAddress: null
         }),
       setRememberedIdentifier: (rememberedIdentifier) => set({ rememberedIdentifier }),
@@ -103,7 +98,6 @@ export const useSessionStore = create<SessionState>()(
           currency,
           locale
         }),
-      setThemePreference: (themePreference) => set({ themePreference }),
       setWishlist: (wishlist) => set({ wishlist }),
       toggleWishlistItem: (productId) =>
         set((state) => ({
@@ -182,7 +176,6 @@ export const useSessionStore = create<SessionState>()(
         country: state.country,
         currency: state.currency,
         locale: state.locale,
-        themePreference: state.themePreference,
         wishlist: state.wishlist,
         cartCount: state.cartCount,
         guestCart: state.guestCart,

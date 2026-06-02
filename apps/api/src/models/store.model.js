@@ -20,10 +20,7 @@ const storeSchema = new mongoose.Schema(
       expressDeliveryDays: { min: Number, max: Number }
     },
     paymentMethods: {
-      stripe: { type: Boolean, default: true },
-      paypal: { type: Boolean, default: true },
       payfast: { type: Boolean, default: true },
-      ozow: { type: Boolean, default: false }
     },
     isActive: { type: Boolean, default: true }
   },
