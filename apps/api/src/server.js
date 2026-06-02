@@ -5,7 +5,7 @@ const { logger } = require("./config/logger");
 const { seedDevelopmentData } = require("./services/seed.service");
 
 const port = process.env.PORT || 4000;
-const host = process.env.HOST || "0.0.0.0";
+const host = "0.0.0.0";
 
 async function bootstrap() {
   await connectDatabase();
