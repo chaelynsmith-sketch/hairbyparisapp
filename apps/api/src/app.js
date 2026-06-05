@@ -20,7 +20,7 @@ function createApp() {
     .split(",")
     .map((origin) => origin.trim())
     .filter(Boolean);
-  const allowedVercelProjectPattern = /^https:\/\/(?:hairbyparisapp|hairbyparisapp-api)(?:-[a-z0-9-]+)?\.vercel\.app$/i;
+  const allowedVercelProjectPattern = /^https:\/\/[a-z0-9-]+\.vercel\.app$/i;
 
   const allowOrigin = (origin, callback) => {
     if (!origin) {

@@ -23,11 +23,7 @@ export async function uploadMedia(
     } as any);
   }
 
-  const { data } = await api.post(`/uploads/${endpoint}`, formData, {
-    headers: {
-      "Content-Type": "multipart/form-data"
-    }
-  });
+  const { data } = await api.post(`/uploads/${endpoint}`, formData);
 
   return data.media;
 }
