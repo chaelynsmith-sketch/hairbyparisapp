@@ -3,10 +3,25 @@ import Constants from "expo-constants";
 
 import { useSessionStore } from "@/store/session-store";
 
-const baseURL =
+function normalizeApiBaseUrl(value?: string | null) {
+  const trimmed = value?.trim().replace(/\/+$/, "");
+
+  if (!trimmed) {
+    return "http://localhost:4000/api/v1";
+  }
+
+  if (/\/api\/v1$/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  return `${trimmed}/api/v1`;
+}
+
+const baseURL = normalizeApiBaseUrl(
   process.env.EXPO_PUBLIC_API_URL ||
-  Constants.expoConfig?.extra?.apiUrl ||
-  "http://localhost:4000/api/v1";
+    Constants.expoConfig?.extra?.apiUrl ||
+    "http://localhost:4000/api/v1"
+);
 
 const api = axios.create({
   baseURL
