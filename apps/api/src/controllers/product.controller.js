@@ -17,6 +17,49 @@ function sanitizePublicProduct(product) {
   return value;
 }
 
+function slugify(value = "product") {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function generateSku(name, category) {
+  const categoryCode = String(category || "HBP")
+    .replace(/&/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+  const nameCode = String(name || "PRODUCT")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 14);
+  const suffix = Date.now().toString().slice(-5);
+
+  return `HBP-${categoryCode || "CAT"}-${nameCode || "ITEM"}-${suffix}`;
+}
+
+function normalizeProductPayload(body) {
+  const payload = { ...body };
+
+  if (payload.name || payload.slug) {
+    payload.slug = slugify(payload.slug || payload.name);
+  }
+
+  if (payload.inventory || payload.name || payload.category) {
+    const inventory = { ...(payload.inventory || {}) };
+    inventory.sku = inventory.sku?.trim() || generateSku(payload.name, payload.category);
+    payload.inventory = inventory;
+  }
+
+  return payload;
+}
+
 async function listProducts(req, res) {
   const filters = {
     storeId: req.storeId,
@@ -71,19 +114,27 @@ async function getProduct(req, res) {
 }
 
 async function createProduct(req, res) {
+  const payload = normalizeProductPayload(req.body);
   const product = await Product.create({
-    ...req.body,
+    ...payload,
     storeId: req.storeId
+  }).catch((error) => {
+    if (error.code === 11000) {
+      throw new ApiError(409, "A product with this slug already exists. Change the product name or slug.");
+    }
+
+    throw error;
   });
   res.status(201).json({ product });
 }
 
 async function updateProduct(req, res) {
+  const payload = normalizeProductPayload(req.body);
   const product = await Product.findOneAndUpdate(
     { _id: req.params.productId, storeId: req.storeId },
     {
       $set: {
-        ...req.body,
+        ...payload,
         storeId: req.storeId
       }
     },

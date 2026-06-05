@@ -5,7 +5,7 @@ const productCreateValidator = [
   body("slug").notEmpty(),
   body("category").trim().notEmpty(),
   body("pricing.amount").isFloat({ min: 0 }),
-  body("inventory.sku").notEmpty()
+  body("inventory.sku").optional({ checkFalsy: true }).isString()
 ];
 
 const productQueryValidator = [

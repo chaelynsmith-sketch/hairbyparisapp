@@ -47,6 +47,25 @@ function slugify(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function generateSku(name: string, category: string) {
+  const categoryCode = (category || "HBP")
+    .replace(/&/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((word) => word[0])
+    .join("")
+    .slice(0, 3)
+    .toUpperCase();
+  const nameCode = (name || "PRODUCT")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 14);
+  const suffix = Date.now().toString().slice(-5);
+
+  return `HBP-${categoryCode || "CAT"}-${nameCode || "ITEM"}-${suffix}`;
+}
+
 function confirmDestructiveAction(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === "web") {
     if (window.confirm(`${title}\n\n${message}`)) {
@@ -93,9 +112,7 @@ export default function AdminProductsScreen() {
         throw new Error("Category is required.");
       }
 
-      if (!form.sku.trim()) {
-        throw new Error("SKU is required.");
-      }
+      const normalizedSku = form.sku.trim() || generateSku(form.name, form.category);
 
       if (Number(form.amount) <= 0) {
         throw new Error("Price must be greater than zero.");
@@ -142,7 +159,7 @@ export default function AdminProductsScreen() {
           saleAmount: form.saleAmount ? Number(form.saleAmount) : undefined
         },
         inventory: {
-          sku: form.sku,
+          sku: normalizedSku,
           quantity: Number(form.quantity || 0),
           lowStockThreshold: 3
         }
@@ -532,6 +549,14 @@ export default function AdminProductsScreen() {
                 ...(key === "name" && !current._id && !current.slug.trim() ? { slug: slugify(value) } : {})
               }))
             }
+            onBlur={() => {
+              if ((key === "name" || key === "category") && !form.sku.trim() && form.name.trim()) {
+                setForm((current) => ({
+                  ...current,
+                  sku: generateSku(current.name, current.category)
+                }));
+              }
+            }}
             placeholder={label}
             placeholderTextColor={theme.muted}
             style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
@@ -543,7 +568,13 @@ export default function AdminProductsScreen() {
           {categoryOptions.map((category) => (
             <Pressable
               key={category}
-              onPress={() => setForm((current) => ({ ...current, category }))}
+              onPress={() =>
+                setForm((current) => ({
+                  ...current,
+                  category,
+                  sku: current.sku.trim() ? current.sku : generateSku(current.name, category)
+                }))
+              }
               style={[
                 styles.categoryPill,
                 {
