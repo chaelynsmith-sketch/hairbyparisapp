@@ -66,6 +66,10 @@ function generateSku(name: string, category: string) {
   return `HBP-${categoryCode || "CAT"}-${nameCode || "ITEM"}-${suffix}`;
 }
 
+function shouldAutoUpdateSlug(currentSlug: string, previousName: string) {
+  return !currentSlug.trim() || currentSlug === slugify(previousName);
+}
+
 function confirmDestructiveAction(title: string, message: string, onConfirm: () => void) {
   if (Platform.OS === "web") {
     if (window.confirm(`${title}\n\n${message}`)) {
@@ -546,10 +550,20 @@ export default function AdminProductsScreen() {
               setForm((current) => ({
                 ...current,
                 [key]: value,
-                ...(key === "name" && !current._id && !current.slug.trim() ? { slug: slugify(value) } : {})
+                ...(key === "name" && !current._id && shouldAutoUpdateSlug(current.slug, current.name)
+                  ? { slug: slugify(value) }
+                  : {}),
+                ...(key === "slug" ? { slug: slugify(value) } : {})
               }))
             }
             onBlur={() => {
+              if (key === "name" && !form._id && form.name.trim() && !form.slug.trim()) {
+                setForm((current) => ({
+                  ...current,
+                  slug: slugify(current.name)
+                }));
+              }
+
               if ((key === "name" || key === "category") && !form.sku.trim() && form.name.trim()) {
                 setForm((current) => ({
                   ...current,
