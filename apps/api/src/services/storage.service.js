@@ -1,6 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const mongoose = require("mongoose");
 const { getPublicApiOrigin } = require("../utils/media-url");
 const { UploadAsset } = require("../models/upload-asset.model");
 
@@ -15,6 +16,22 @@ const s3 = new S3Client({
       : undefined
 });
 
+function uploadToGridFs({ key, body, contentType }) {
+  return new Promise((resolve, reject) => {
+    const bucket = new mongoose.mongo.GridFSBucket(mongoose.connection.db, {
+      bucketName: "uploads"
+    });
+    const uploadStream = bucket.openUploadStream(key, {
+      contentType,
+      metadata: { key }
+    });
+
+    uploadStream.once("error", reject);
+    uploadStream.once("finish", resolve);
+    uploadStream.end(body);
+  });
+}
+
 async function uploadToS3({ key, body, contentType }) {
   if (!process.env.AWS_S3_BUCKET) {
     const uploadsRoot = path.join(__dirname, "..", "..", "uploads");
@@ -22,15 +39,8 @@ async function uploadToS3({ key, body, contentType }) {
     const publicOrigin = getPublicApiOrigin();
 
     if (process.env.NODE_ENV === "production") {
-      await UploadAsset.findOneAndUpdate(
-        { key },
-        {
-          key,
-          contentType,
-          data: body
-        },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+      await uploadToGridFs({ key, body, contentType });
+      await UploadAsset.deleteOne({ key });
     } else {
       await fs.mkdir(path.dirname(targetPath), { recursive: true });
       await fs.writeFile(targetPath, body);
