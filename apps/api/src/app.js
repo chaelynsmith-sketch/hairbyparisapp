@@ -51,6 +51,12 @@ function createApp() {
       allowedHeaders: ["Content-Type", "Authorization", "x-store-key", "x-store-id"]
     })
   );
+  app.options("*", cors({
+    origin: allowOrigin,
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-store-key", "x-store-id"]
+  }));
   app.use(compression());
   app.get(/^\/uploads\/(.+)$/, asyncHandler(serveUploadAsset));
   app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
