@@ -4,7 +4,10 @@ import Constants from "expo-constants";
 import { useSessionStore } from "@/store/session-store";
 
 function normalizeApiBaseUrl(value?: string | null) {
-  const trimmed = value?.trim().replace(/\/+$/, "");
+  const trimmed = value
+    ?.trim()
+    .replace(/^EXPO_PUBLIC_API_URL=/i, "")
+    .replace(/\/+$/, "");
 
   if (!trimmed) {
     return "http://localhost:4000/api/v1";
