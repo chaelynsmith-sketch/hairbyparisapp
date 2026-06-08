@@ -84,6 +84,18 @@ function confirmDestructiveAction(title: string, message: string, onConfirm: () 
   ]);
 }
 
+function getRequestErrorMessage(error: any, fallback: string) {
+  const status = error?.response?.status;
+  const path = error?.config?.url;
+  const serverMessage = error?.response?.data?.message;
+
+  if (status && path) {
+    return `${serverMessage || fallback} (${status} on ${path})`;
+  }
+
+  return serverMessage || error?.message || fallback;
+}
+
 export default function AdminProductsScreen() {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -180,7 +192,7 @@ export default function AdminProductsScreen() {
       setStatusMessage(`${product.name} saved successfully.`);
     },
     onError: (error: any) => {
-      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to save product.");
+      setErrorMessage(getRequestErrorMessage(error, "Unable to save product."));
     }
   });
 
@@ -275,7 +287,7 @@ export default function AdminProductsScreen() {
           }));
           setStatusMessage(`${uploaded.length} media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
         } catch (error: any) {
-          setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload media.");
+          setErrorMessage(getRequestErrorMessage(error, "Unable to upload media."));
         }
       };
 
@@ -316,7 +328,7 @@ export default function AdminProductsScreen() {
       }));
       setStatusMessage(`${uploaded.length} media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
     } catch (error: any) {
-      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload media.");
+      setErrorMessage(getRequestErrorMessage(error, "Unable to upload media."));
     }
   }
 
@@ -395,7 +407,7 @@ export default function AdminProductsScreen() {
           }));
           setStatusMessage(`${uploaded.length} variant media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
         } catch (error: any) {
-          setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload variant media.");
+          setErrorMessage(getRequestErrorMessage(error, "Unable to upload variant media."));
         }
       };
 
@@ -443,7 +455,7 @@ export default function AdminProductsScreen() {
       }));
       setStatusMessage(`${uploaded.length} variant media item${uploaded.length > 1 ? "s" : ""} uploaded.`);
     } catch (error: any) {
-      setErrorMessage(error?.response?.data?.message || error?.message || "Unable to upload variant media.");
+      setErrorMessage(getRequestErrorMessage(error, "Unable to upload variant media."));
     }
   }
 

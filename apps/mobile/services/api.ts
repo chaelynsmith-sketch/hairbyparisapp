@@ -10,8 +10,8 @@ function normalizeApiBaseUrl(value?: string | null) {
     return "http://localhost:4000/api/v1";
   }
 
-  if (/\/api\/v1$/i.test(trimmed)) {
-    return trimmed;
+  if (/\/api\/v1(?:\/.*)?$/i.test(trimmed)) {
+    return trimmed.replace(/\/api\/v1(?:\/.*)?$/i, "/api/v1");
   }
 
   return `${trimmed}/api/v1`;
