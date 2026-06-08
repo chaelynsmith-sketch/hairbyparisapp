@@ -8,6 +8,7 @@ import { Screen } from "@/components/screen";
 import { ScreenHeader } from "@/components/screen-header";
 import { useTheme } from "@/hooks/use-theme";
 import { fetchAdminProducts } from "@/services/admin-service";
+import { apiBaseURL } from "@/services/api";
 import { createProduct, deleteProduct, updateProduct } from "@/services/catalog-service";
 import { uploadMedia } from "@/services/upload-service";
 
@@ -87,10 +88,12 @@ function confirmDestructiveAction(title: string, message: string, onConfirm: () 
 function getRequestErrorMessage(error: any, fallback: string) {
   const status = error?.response?.status;
   const path = error?.config?.url;
+  const base = error?.config?.baseURL || apiBaseURL;
   const serverMessage = error?.response?.data?.message;
 
   if (status && path) {
-    return `${serverMessage || fallback} (${status} on ${path})`;
+    const target = /^https?:\/\//i.test(path) ? path : `${base?.replace(/\/+$/, "")}${path}`;
+    return `${serverMessage || fallback} (${status} on ${target})`;
   }
 
   return serverMessage || error?.message || fallback;
