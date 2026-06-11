@@ -352,6 +352,20 @@ async function resetPassword(req, res) {
   res.json({ message: "Password updated successfully" });
 }
 
+async function changePassword(req, res) {
+  const user = await User.findById(req.user.id);
+
+  if (!user || !(await bcrypt.compare(req.body.currentPassword, user.passwordHash))) {
+    throw new ApiError(401, "Current password is incorrect");
+  }
+
+  user.passwordHash = await bcrypt.hash(req.body.newPassword, 12);
+  user.refreshTokens = [];
+  await user.save();
+
+  res.json({ message: "Password changed successfully. Please sign in again." });
+}
+
 async function requestUsernameOtp(req, res) {
   const destination =
     req.body.destinationType === "email"
@@ -424,6 +438,7 @@ module.exports = {
   me,
   requestPasswordOtp,
   resetPassword,
+  changePassword,
   requestUsernameOtp,
   recoverUsername
 };

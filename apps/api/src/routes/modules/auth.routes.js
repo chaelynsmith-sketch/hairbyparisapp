@@ -11,6 +11,7 @@ const {
   me,
   requestPasswordOtp,
   resetPassword,
+  changePassword,
   requestUsernameOtp,
   recoverUsername
 } = require("../../controllers/auth.controller");
@@ -26,6 +27,7 @@ const {
   verifyLoginOtpValidator,
   requestPasswordOtpValidator,
   resetPasswordValidator,
+  changePasswordValidator,
   requestUsernameOtpValidator,
   recoverUsernameValidator
 } = require("../../validators/auth.validator");
@@ -47,6 +49,7 @@ authRouter.post("/login/request-otp", otpLimiter, requestLoginOtpValidator, vali
 authRouter.post("/login/verify-otp", otpLimiter, verifyLoginOtpValidator, validateRequest, asyncHandler(verifyLoginOtp));
 authRouter.post("/password/request-otp", otpLimiter, requestPasswordOtpValidator, validateRequest, asyncHandler(requestPasswordOtp));
 authRouter.post("/password/reset", otpLimiter, resetPasswordValidator, validateRequest, asyncHandler(resetPassword));
+authRouter.post("/password/change", authenticate, changePasswordValidator, validateRequest, asyncHandler(changePassword));
 authRouter.post("/username/request-otp", otpLimiter, requestUsernameOtpValidator, validateRequest, asyncHandler(requestUsernameOtp));
 authRouter.post("/username/recover", otpLimiter, recoverUsernameValidator, validateRequest, asyncHandler(recoverUsername));
 authRouter.post("/refresh", asyncHandler(refresh));

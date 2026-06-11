@@ -51,6 +51,11 @@ export async function resetPassword(payload: { identifier: string; otp: string; 
   return data;
 }
 
+export async function changePassword(payload: { currentPassword: string; newPassword: string }) {
+  const { data } = await api.post("/auth/password/change", payload);
+  return data;
+}
+
 export async function requestUsernameOtp(payload: { destination: string; destinationType: "email" | "phone" }) {
   const { data } = await api.post("/auth/username/request-otp", payload);
   return data;

@@ -49,6 +49,19 @@ const resetPasswordValidator = [
     .withMessage("Password must include a special character")
 ];
 
+const changePasswordValidator = [
+  body("currentPassword").isLength({ min: 1 }).withMessage("Current password is required"),
+  body("newPassword")
+    .isLength({ min: 14 })
+    .withMessage("Password must be at least 14 characters")
+    .matches(/[A-Za-z]/)
+    .withMessage("Password must include a letter")
+    .matches(/[0-9]/)
+    .withMessage("Password must include a number")
+    .matches(/[^A-Za-z0-9]/)
+    .withMessage("Password must include a special character")
+];
+
 const requestUsernameOtpValidator = [
   body("destination").isLength({ min: 3 }),
   body("destinationType").isIn(["email", "phone"])
@@ -69,6 +82,7 @@ module.exports = {
   verifyLoginOtpValidator,
   requestPasswordOtpValidator,
   resetPasswordValidator,
+  changePasswordValidator,
   requestUsernameOtpValidator,
   recoverUsernameValidator
 };

@@ -1,10 +1,12 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 
 import { Screen } from "@/components/screen";
 import { regions } from "@/constants/regions";
 import { useTheme } from "@/hooks/use-theme";
+import { changePassword } from "@/services/auth-service";
 import { registerDeviceForPushNotifications } from "@/services/notification-service";
 import { useSessionStore } from "@/store/session-store";
 
@@ -18,8 +20,18 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const queryClient = useQueryClient();
   const { user, country, currency, setRegion, clearSession, setGuestCart } = useSessionStore();
+  const [passwordForm, setPasswordForm] = useState({ currentPassword: "", newPassword: "" });
+  const [showPasswords, setShowPasswords] = useState(false);
   const enablePushMutation = useMutation<PushRegistrationResult>({
     mutationFn: registerDeviceForPushNotifications
+  });
+  const changePasswordMutation = useMutation({
+    mutationFn: () => changePassword(passwordForm),
+    onSuccess: () => {
+      clearSession();
+      queryClient.clear();
+      router.replace("/auth/login");
+    }
   });
 
   function handleLogout() {
@@ -108,6 +120,44 @@ export default function ProfileScreen() {
         </Pressable>
       ) : null}
 
+      {user ? (
+        <View style={[styles.securityCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>Password security</Text>
+          <TextInput
+            value={passwordForm.currentPassword}
+            onChangeText={(currentPassword) => setPasswordForm((current) => ({ ...current, currentPassword }))}
+            placeholder="Current password"
+            placeholderTextColor={theme.muted}
+            secureTextEntry={!showPasswords}
+            style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
+          />
+          <TextInput
+            value={passwordForm.newPassword}
+            onChangeText={(newPassword) => setPasswordForm((current) => ({ ...current, newPassword }))}
+            placeholder="New password"
+            placeholderTextColor={theme.muted}
+            secureTextEntry={!showPasswords}
+            style={[styles.input, { borderColor: theme.border, color: theme.text, backgroundColor: theme.canvas }]}
+          />
+          <Pressable onPress={() => setShowPasswords((value) => !value)} style={[styles.secondaryAction, { borderColor: theme.border, backgroundColor: theme.canvas }]}>
+            <Text style={{ color: theme.text, fontWeight: "700" }}>{showPasswords ? "Hide passwords" : "Show passwords"}</Text>
+          </Pressable>
+          <Text style={{ color: theme.muted }}>Use at least 14 characters with a letter, number, and special character.</Text>
+          {changePasswordMutation.isError ? (
+            <Text style={styles.errorText}>
+              {(changePasswordMutation.error as any)?.response?.data?.message || "Unable to change password."}
+            </Text>
+          ) : null}
+          <Pressable
+            onPress={() => changePasswordMutation.mutate()}
+            disabled={changePasswordMutation.isPending}
+            style={[styles.primaryAction, { backgroundColor: theme.primary, opacity: changePasswordMutation.isPending ? 0.7 : 1 }]}
+          >
+            <Text style={styles.primaryActionText}>{changePasswordMutation.isPending ? "Updating..." : "Change password"}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme.text }]}>Policies</Text>
         <Pressable onPress={() => router.push("/legal/privacy")} style={[styles.adminLink, { backgroundColor: theme.card, borderColor: theme.border }]}>
@@ -192,6 +242,22 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     padding: 16,
     alignItems: "center"
+  },
+  securityCard: {
+    borderWidth: 1,
+    borderRadius: 2,
+    padding: 16,
+    gap: 10
+  },
+  input: {
+    borderWidth: 1,
+    borderRadius: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 13
+  },
+  errorText: {
+    color: "#B3261E",
+    fontWeight: "700"
   },
   logout: {
     borderWidth: 1,
